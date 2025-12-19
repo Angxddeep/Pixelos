@@ -1,0 +1,299 @@
+name: Build PixelOS for Xaga
+
+on:
+  workflow_dispatch:
+    inputs:
+      BUILD_TYPE:
+        description: 'Build type (userdebug/user)'
+        required: true
+        default: 'userdebug'
+        type: choice
+        options:
+          - userdebug
+          - user
+      CLEAN_BUILD:
+        description: 'Clean build (removes out/)'
+        required: false
+        default: false
+        type: boolean
+      UPLOAD_TO_RELEASE:
+        description: 'Upload to GitHub Releases'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  # Device configuration
+  DEVICE_CODENAME: xaga
+  DEVICE_MANUFACTURER: xiaomi
+  
+  # ROM configuration
+  ROM_NAME: PixelOS
+  ROM_MANIFEST: https://github.com/PixelOS-AOSP/android_manifest.git
+  ROM_BRANCH: sixteen-qpr1
+  LUNCH_TARGET: aosp_xaga
+  
+  # Build configuration
+  TZ: Asia/Kolkata
+  CCACHE_DIR: /tmp/ccache
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 720  # 12 hours max
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Display build info
+        run: |
+          echo "========================================"
+          echo "🚀 PixelOS Build for Xaga"
+          echo "========================================"
+          echo "Device: ${{ env.DEVICE_CODENAME }}"
+          echo "ROM: ${{ env.ROM_NAME }}"
+          echo "Branch: ${{ env.ROM_BRANCH }}"
+          echo "Build Type: ${{ inputs.BUILD_TYPE }}"
+          echo "========================================"
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            bc bison build-essential ccache curl flex g++-multilib gcc-multilib git \
+            git-lfs gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev \
+            lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev \
+            libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync \
+            schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3 \
+            openjdk-17-jdk repo
+          
+          # Setup git
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git config --global color.ui false
+          
+          # Initialize git-lfs
+          git lfs install
+          
+          echo "✅ Build environment ready!"
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: 10G
+          key: ccache-${{ env.DEVICE_CODENAME }}-${{ env.ROM_BRANCH }}
+
+      - name: Initialize repo
+        run: |
+          mkdir -p ~/pos
+          cd ~/pos
+          repo init -u ${{ env.ROM_MANIFEST }} -b ${{ env.ROM_BRANCH }} --git-lfs --depth=1
+          echo "✅ Repo initialized!"
+
+      - name: Sync ROM source
+        run: |
+          cd ~/pos
+          repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune --force-sync -j$(nproc --all) || \
+          repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune --force-sync -j4
+          echo "✅ ROM source synced!"
+
+      - name: Clone device trees
+        run: |
+          cd ~/pos
+          
+          echo "📱 Cloning device trees..."
+          git clone --depth=1 https://github.com/XagaForge/android_device_xiaomi_xaga.git \
+            device/${{ env.DEVICE_MANUFACTURER }}/${{ env.DEVICE_CODENAME }}
+          
+          git clone --depth=1 https://github.com/XagaForge/android_device_xiaomi_mt6895-common.git \
+            device/${{ env.DEVICE_MANUFACTURER }}/mt6895-common
+          
+          echo "✅ Device trees cloned!"
+
+      - name: Clone vendor trees
+        run: |
+          cd ~/pos
+          
+          echo "📦 Cloning vendor trees..."
+          git clone --depth=1 https://gitlab.com/priiii08918/android_vendor_xiaomi_xaga.git \
+            vendor/${{ env.DEVICE_MANUFACTURER }}/${{ env.DEVICE_CODENAME }}
+          
+          git clone --depth=1 https://github.com/XagaForge/android_vendor_xiaomi_mt6895-common.git \
+            vendor/${{ env.DEVICE_MANUFACTURER }}/mt6895-common
+          
+          echo "✅ Vendor trees cloned!"
+
+      - name: Clone kernel
+        run: |
+          cd ~/pos
+          
+          echo "🔶 Cloning kernel..."
+          git clone --depth=1 https://github.com/XagaForge/android_kernel_xiaomi_mt6895.git \
+            kernel/${{ env.DEVICE_MANUFACTURER }}/mt6895
+          
+          echo "✅ Kernel cloned!"
+
+      - name: Clone hardware repos
+        run: |
+          cd ~/pos
+          
+          echo "🛠️ Cloning hardware repos..."
+          
+          # MediaTek IMS
+          rm -rf vendor/mediatek/ims 2>/dev/null || true
+          git clone --depth=1 https://github.com/XagaForge/android_vendor_mediatek_ims.git \
+            vendor/mediatek/ims
+          
+          # MediaTek SEPolicy
+          rm -rf device/mediatek/sepolicy_vndr 2>/dev/null || true
+          git clone --depth=1 https://github.com/XagaForge/android_device_mediatek_sepolicy_vndr.git \
+            device/mediatek/sepolicy_vndr
+          
+          # MediaTek Hardware
+          rm -rf hardware/mediatek 2>/dev/null || true
+          git clone --depth=1 https://github.com/XagaForge/android_hardware_mediatek.git \
+            hardware/mediatek
+          
+          # Xiaomi Hardware
+          rm -rf hardware/xiaomi 2>/dev/null || true
+          git clone --depth=1 https://github.com/XagaForge/android_hardware_xiaomi.git \
+            hardware/xiaomi
+          
+          echo "✅ Hardware repos cloned!"
+
+      - name: Clone optional repos
+        run: |
+          cd ~/pos
+          
+          echo "📸 Cloning optional repos..."
+          
+          # Firmware
+          git clone --depth=1 https://github.com/XagaForge/android_vendor_firmware.git \
+            vendor/firmware
+          
+          # MiuiCamera
+          git clone --depth=1 https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
+            vendor/${{ env.DEVICE_MANUFACTURER }}/miuicamera-xaga
+          
+          echo "✅ Optional repos cloned!"
+
+      - name: Apply patches
+        run: |
+          cd ~/pos
+          
+          echo "🔧 Applying patches..."
+          
+          cd external/wpa_supplicant_8
+          
+          # MediaTek changes for wpa_supplicant_8
+          git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048
+          git cherry-pick --no-commit 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048 || true
+          
+          # WAPI enablement
+          git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 37a6e255d9d68fb483d12db550028749b280509b
+          git cherry-pick --no-commit 37a6e255d9d68fb483d12db550028749b280509b || true
+          
+          echo "✅ Patches applied!"
+
+      - name: Clean build (optional)
+        if: ${{ inputs.CLEAN_BUILD }}
+        run: |
+          cd ~/pos
+          rm -rf out/
+          echo "✅ Clean build - out/ removed!"
+
+      - name: Build ROM
+        run: |
+          cd ~/pos
+          
+          # Setup ccache
+          export USE_CCACHE=1
+          export CCACHE_EXEC=$(which ccache)
+          
+          # Source build environment
+          source build/envsetup.sh
+          
+          # Lunch
+          lunch ${{ env.LUNCH_TARGET }}-${{ inputs.BUILD_TYPE }}
+          
+          echo "🏗️ Starting build..."
+          
+          # Build
+          mka bacon -j$(nproc --all) 2>&1 | tee build.log
+          
+          echo "✅ Build completed!"
+
+      - name: Find build output
+        id: find_output
+        run: |
+          cd ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}
+          
+          # Find the ROM zip
+          ROM_ZIP=$(ls -t PixelOS*.zip 2>/dev/null | head -1 || echo "")
+          if [ -z "$ROM_ZIP" ]; then
+            ROM_ZIP=$(ls -t *.zip 2>/dev/null | head -1 || echo "")
+          fi
+          
+          if [ -n "$ROM_ZIP" ]; then
+            echo "rom_file=$ROM_ZIP" >> $GITHUB_OUTPUT
+            echo "rom_path=~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/$ROM_ZIP" >> $GITHUB_OUTPUT
+            echo "✅ Found ROM: $ROM_ZIP"
+          else
+            echo "❌ No ROM zip found!"
+            exit 1
+          fi
+
+      - name: Upload ROM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelOS-${{ env.DEVICE_CODENAME }}-${{ github.run_number }}
+          path: |
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/PixelOS*.zip
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/recovery.img
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/boot.img
+          retention-days: 7
+
+      - name: Create GitHub Release
+        if: ${{ inputs.UPLOAD_TO_RELEASE }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.ROM_NAME }}-${{ env.DEVICE_CODENAME }}-${{ github.run_number }}
+          name: "PixelOS for Xaga - Build #${{ github.run_number }}"
+          body: |
+            ## PixelOS for Xaga (POCO X4 GT / Redmi K50i / Redmi Note 11T Pro+)
+            
+            **Build Info:**
+            - ROM: ${{ env.ROM_NAME }}
+            - Branch: ${{ env.ROM_BRANCH }}
+            - Build Type: ${{ inputs.BUILD_TYPE }}
+            - Build Date: ${{ github.event.repository.updated_at }}
+            
+            **Download and flash via custom recovery (TWRP/OrangeFox)**
+          files: |
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/PixelOS*.zip
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/recovery.img
+            ~/pos/out/target/product/${{ env.DEVICE_CODENAME }}/boot.img
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-failed
+          path: ~/pos/build.log
+          retention-days: 3
