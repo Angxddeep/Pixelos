@@ -161,9 +161,9 @@ jobs:
           git clone --depth=1 https://github.com/XagaForge/android_device_mediatek_sepolicy_vndr.git \
             device/mediatek/sepolicy_vndr
           
-          # MediaTek Hardware
+          # MediaTek Hardware (16.1 branch)
           rm -rf hardware/mediatek 2>/dev/null || true
-          git clone --depth=1 https://github.com/XagaForge/android_hardware_mediatek.git \
+          git clone --depth=1 -b 16.1 https://github.com/XagaForge/android_hardware_mediatek.git \
             hardware/mediatek
           
           # Xiaomi Hardware
@@ -183,8 +183,8 @@ jobs:
           git clone --depth=1 https://github.com/XagaForge/android_vendor_firmware.git \
             vendor/firmware
           
-          # MiuiCamera
-          git clone --depth=1 https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
+          # MiuiCamera (16.1 branch)
+          git clone --depth=1 -b 16.1 https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
             vendor/${{ env.DEVICE_MANUFACTURER }}/miuicamera-xaga
           
           echo "✅ Optional repos cloned!"
@@ -225,13 +225,13 @@ jobs:
           # Source build environment
           source build/envsetup.sh
           
-          # Lunch
-          lunch ${{ env.LUNCH_TARGET }}-${{ inputs.BUILD_TYPE }}
+          # Breakfast for xaga device
+          breakfast xaga
           
           echo "🏗️ Starting build..."
           
-          # Build
-          mka bacon -j$(nproc --all) 2>&1 | tee build.log
+          # Build fastboot package
+          mka fb_package -j$(nproc --all) 2>&1 | tee build.log
           
           echo "✅ Build completed!"
 
