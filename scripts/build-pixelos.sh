@@ -31,7 +31,7 @@ DEVICE_MANUFACTURER="xiaomi"
 # ROM
 ROM_NAME="PixelOS"
 ROM_MANIFEST="https://github.com/PixelOS-AOSP/manifest.git"
-ROM_BRANCH="sixteen-qpr1"
+ROM_BRANCH="sixteen"
 
 # Build
 BUILD_TYPE="${BUILD_TYPE:-userdebug}"

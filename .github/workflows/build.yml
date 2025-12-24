@@ -30,7 +30,7 @@ env:
   # ROM configuration
   ROM_NAME: PixelOS
   ROM_MANIFEST: https://github.com/PixelOS-AOSP/android_manifest.git
-  ROM_BRANCH: sixteen-qpr1
+  ROM_BRANCH: sixteen
   LUNCH_TARGET: aosp_xaga
   
   # Build configuration
