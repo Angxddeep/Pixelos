@@ -210,6 +210,12 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         https://github.com/xiaomi-mt6895-devs/android_hardware_mediatek.git \
         hardware/mediatek
 
+    # Xiaomi Hardware (required by vendor blobs) - from XagaForge
+    rm -rf hardware/xiaomi 2>/dev/null || true
+    git clone --depth=1 \
+        https://github.com/XagaForge/android_hardware_xiaomi.git \
+        hardware/xiaomi
+
     # =============================================================================
     # Step 3: Clone MIUI Camera from XagaForge
     # =============================================================================
