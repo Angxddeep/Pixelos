@@ -357,6 +357,12 @@ EOFAP
     rm -rf hardware/qcom/sm8250 2>/dev/null || true
     rm -rf hardware/qcom/sm8350 2>/dev/null || true
 
+    # Remove incompatible livedisplay HIDL services (they expect @2.0 but repo has AIDL V2)
+    # LiveDisplay is not essential - display works fine without it
+    print_info "Removing incompatible livedisplay HIDL services..."
+    rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
+    rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
+
     print_success "Sources ready!"
 fi
 
