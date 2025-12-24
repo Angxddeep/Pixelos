@@ -230,6 +230,70 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
 
     cd "$BUILD_DIR"
 
+    # =============================================================================
+    # Step 5: Create PixelOS Product Makefile
+    # =============================================================================
+
+    print_step "5.5/6 - Creating PixelOS product makefile..."
+
+    # The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
+    # We need to create an aosp_xaga.mk for PixelOS
+    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk << 'EOFMK'
+#
+# Copyright (C) 2023 The LineageOS Project
+# Copyright (C) 2024 PixelOS
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Inherit from those products. Most specific first.
+$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+
+# Inherit from xaga device
+$(call inherit-product, device/xiaomi/xaga/device.mk)
+
+# Inherit some common PixelOS stuff.
+$(call inherit-product, vendor/aosp/config/common_full_phone.mk)
+
+PRODUCT_BRAND := POCO
+PRODUCT_DEVICE := xaga
+PRODUCT_MANUFACTURER := Xiaomi
+PRODUCT_MODEL := 22041216G
+PRODUCT_NAME := aosp_xaga
+PRODUCT_SYSTEM_NAME := xaga_global
+
+PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
+
+PRODUCT_BUILD_PROP_OVERRIDES += \
+    BuildDesc="xaga_global-user 14 UP1A.231005.007 OS2.0.3.0.ULOMIXM release-keys" \
+    BuildFingerprint=POCO/xaga_global/xaga:14/UP1A.231005.007/OS2.0.3.0.ULOMIXM:user/release-keys \
+    DeviceProduct=$(PRODUCT_SYSTEM_NAME)
+EOFMK
+
+    # Also need to add aosp_xaga to AndroidProducts.mk if not present
+    ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
+    if ! grep -q "aosp_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
+        print_info "Adding aosp_xaga to AndroidProducts.mk..."
+        # Check if file exists and what format it uses
+        if [[ -f "$ANDROID_PRODUCTS" ]]; then
+            # Append aosp_xaga.mk to PRODUCT_MAKEFILES
+            sed -i '/PRODUCT_MAKEFILES/a\    $(LOCAL_DIR)/aosp_xaga.mk \\' "$ANDROID_PRODUCTS"
+        else
+            # Create new AndroidProducts.mk
+            cat > "$ANDROID_PRODUCTS" << 'EOFAP'
+PRODUCT_MAKEFILES := \
+    $(LOCAL_DIR)/aosp_xaga.mk \
+    $(LOCAL_DIR)/lineage_xaga.mk
+
+COMMON_LUNCH_CHOICES := \
+    aosp_xaga-userdebug \
+    aosp_xaga-user \
+    lineage_xaga-userdebug
+EOFAP
+        fi
+    fi
+
     print_success "Sources ready!"
 fi
 
