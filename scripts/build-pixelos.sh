@@ -174,6 +174,18 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
             vendor/$DEVICE_MANUFACTURER/mt6895-common
     fi
 
+    # Vendor - xaga (device-specific blobs from GitLab)
+    if [[ -d "vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME" ]]; then
+        print_info "Updating vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME..."
+        cd "vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME"
+        git fetch origin && git reset --hard origin/$DEVICE_TREE_BRANCH
+        cd "$BUILD_DIR"
+    else
+        git clone --depth=1 -b "$DEVICE_TREE_BRANCH" \
+            https://gitlab.com/ItsVixano-dev/Android/xiaomi-mt6895-devs/proprietary_vendor_xiaomi_xaga.git \
+            vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME
+    fi
+
     # Kernel
     if [[ -d "kernel/$DEVICE_MANUFACTURER/mt6895" ]]; then
         print_info "Updating kernel..."
