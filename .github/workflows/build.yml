@@ -109,85 +109,68 @@ jobs:
           repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune --force-sync -j4
           echo "✅ ROM source synced!"
 
-      - name: Clone device trees
+      - name: Clone device trees from xiaomi-mt6895-devs
         run: |
           cd ~/pos
           
-          echo "📱 Cloning device trees..."
-          git clone --depth=1 https://github.com/XagaForge/android_device_xiaomi_xaga.git \
+          echo "📱 Cloning device trees from xiaomi-mt6895-devs (lineage-23.1)..."
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/android_device_xiaomi_xaga.git \
             device/${{ env.DEVICE_MANUFACTURER }}/${{ env.DEVICE_CODENAME }}
           
-          git clone --depth=1 https://github.com/XagaForge/android_device_xiaomi_mt6895-common.git \
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/android_device_xiaomi_mt6895-common.git \
             device/${{ env.DEVICE_MANUFACTURER }}/mt6895-common
           
           echo "✅ Device trees cloned!"
 
-      - name: Clone vendor trees
+      - name: Clone vendor trees from xiaomi-mt6895-devs
         run: |
           cd ~/pos
           
-          echo "📦 Cloning vendor trees..."
-          git clone --depth=1 https://gitlab.com/priiii08918/android_vendor_xiaomi_xaga.git \
-            vendor/${{ env.DEVICE_MANUFACTURER }}/${{ env.DEVICE_CODENAME }}
-          
-          git clone --depth=1 https://github.com/XagaForge/android_vendor_xiaomi_mt6895-common.git \
+          echo "📦 Cloning vendor trees from xiaomi-mt6895-devs..."
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/proprietary_vendor_xiaomi_mt6895-common.git \
             vendor/${{ env.DEVICE_MANUFACTURER }}/mt6895-common
           
           echo "✅ Vendor trees cloned!"
 
-      - name: Clone kernel
+      - name: Clone kernel from xiaomi-mt6895-devs
         run: |
           cd ~/pos
           
-          echo "🔶 Cloning kernel..."
-          git clone --depth=1 https://github.com/XagaForge/android_kernel_xiaomi_mt6895.git \
+          echo "🔶 Cloning kernel from xiaomi-mt6895-devs..."
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/android_kernel_xiaomi_mt6895.git \
             kernel/${{ env.DEVICE_MANUFACTURER }}/mt6895
           
           echo "✅ Kernel cloned!"
 
-      - name: Clone hardware repos
+      - name: Clone hardware repos from xiaomi-mt6895-devs
         run: |
           cd ~/pos
           
-          echo "🛠️ Cloning hardware repos..."
-          
-          # MediaTek IMS
-          rm -rf vendor/mediatek/ims 2>/dev/null || true
-          git clone --depth=1 https://github.com/XagaForge/android_vendor_mediatek_ims.git \
-            vendor/mediatek/ims
+          echo "🛠️ Cloning hardware repos from xiaomi-mt6895-devs..."
           
           # MediaTek SEPolicy
           rm -rf device/mediatek/sepolicy_vndr 2>/dev/null || true
-          git clone --depth=1 https://github.com/XagaForge/android_device_mediatek_sepolicy_vndr.git \
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/android_device_mediatek_sepolicy-vndr.git \
             device/mediatek/sepolicy_vndr
           
-          # MediaTek Hardware (16.1 branch)
+          # MediaTek Hardware
           rm -rf hardware/mediatek 2>/dev/null || true
-          git clone --depth=1 -b 16.1 https://github.com/XagaForge/android_hardware_mediatek.git \
+          git clone --depth=1 -b lineage-23.1 https://github.com/xiaomi-mt6895-devs/android_hardware_mediatek.git \
             hardware/mediatek
-          
-          # Xiaomi Hardware
-          rm -rf hardware/xiaomi 2>/dev/null || true
-          git clone --depth=1 https://github.com/XagaForge/android_hardware_xiaomi.git \
-            hardware/xiaomi
           
           echo "✅ Hardware repos cloned!"
 
-      - name: Clone optional repos
+      - name: Clone MIUI Camera from XagaForge
         run: |
           cd ~/pos
           
-          echo "📸 Cloning optional repos..."
+          echo "📸 Cloning MIUI Camera from XagaForge..."
           
-          # Firmware
-          git clone --depth=1 https://github.com/XagaForge/android_vendor_firmware.git \
-            vendor/firmware
-          
-          # MiuiCamera (16.1 branch)
+          # MiuiCamera (16.1 branch for sixteen-qpr1)
           git clone --depth=1 -b 16.1 https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
             vendor/${{ env.DEVICE_MANUFACTURER }}/miuicamera-xaga
           
-          echo "✅ Optional repos cloned!"
+          echo "✅ MIUI Camera cloned!"
 
       - name: Apply patches
         run: |
