@@ -216,6 +216,16 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         https://github.com/XagaForge/android_hardware_xiaomi.git \
         hardware/xiaomi
 
+    # LineageOS Hardware Interfaces (required for livedisplay HAL)
+    # The device tree depends on LineageOS-specific interfaces
+    if [[ ! -d "hardware/lineage/interfaces" ]]; then
+        print_info "Cloning LineageOS hardware interfaces..."
+        mkdir -p hardware/lineage
+        git clone --depth=1 -b lineage-22.1 \
+            https://github.com/AresOS-UDC/android_hardware_lineage_interfaces.git \
+            hardware/lineage/interfaces
+    fi
+
     # =============================================================================
     # Step 3: Clone MIUI Camera from XagaForge
     # =============================================================================
