@@ -315,6 +315,75 @@ if [[ "$CLEAN_BUILD" == "true" ]]; then
     rm -rf out/
 fi
 
+# =============================================================================
+# Create PixelOS Product Makefile (always runs, even with --build-only)
+# =============================================================================
+
+print_info "Ensuring PixelOS product makefile exists..."
+
+# The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
+# We need to create an aosp_xaga.mk for PixelOS
+if [[ ! -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk" ]]; then
+    print_info "Creating aosp_xaga.mk..."
+    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk << 'EOFMK'
+#
+# Copyright (C) 2023 The LineageOS Project
+# Copyright (C) 2024 PixelOS
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Inherit from those products. Most specific first.
+$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+
+# Inherit from xaga device
+$(call inherit-product, device/xiaomi/xaga/device.mk)
+
+# Inherit some common PixelOS stuff.
+$(call inherit-product, vendor/aosp/config/common_full_phone.mk)
+
+PRODUCT_BRAND := POCO
+PRODUCT_DEVICE := xaga
+PRODUCT_MANUFACTURER := Xiaomi
+PRODUCT_MODEL := 22041216G
+PRODUCT_NAME := aosp_xaga
+PRODUCT_SYSTEM_NAME := xaga_global
+
+PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
+
+PRODUCT_BUILD_PROP_OVERRIDES += \
+    BuildDesc="xaga_global-user 14 UP1A.231005.007 OS2.0.3.0.ULOMIXM release-keys" \
+    BuildFingerprint=POCO/xaga_global/xaga:14/UP1A.231005.007/OS2.0.3.0.ULOMIXM:user/release-keys \
+    DeviceProduct=$(PRODUCT_SYSTEM_NAME)
+EOFMK
+fi
+
+# Update AndroidProducts.mk to include aosp_xaga
+ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
+if ! grep -q "aosp_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
+    print_info "Updating AndroidProducts.mk..."
+    if [[ -f "$ANDROID_PRODUCTS" ]]; then
+        # Add aosp_xaga.mk to PRODUCT_MAKEFILES and COMMON_LUNCH_CHOICES
+        cp "$ANDROID_PRODUCTS" "${ANDROID_PRODUCTS}.bak"
+        cat > "$ANDROID_PRODUCTS" << 'EOFAP'
+PRODUCT_MAKEFILES := \
+    $(LOCAL_DIR)/aosp_xaga.mk \
+    $(LOCAL_DIR)/lineage_xaga.mk
+
+COMMON_LUNCH_CHOICES := \
+    aosp_xaga-userdebug \
+    aosp_xaga-user \
+    aosp_xaga-eng \
+    lineage_xaga-userdebug \
+    lineage_xaga-user \
+    lineage_xaga-eng
+EOFAP
+    fi
+fi
+
+print_success "Product makefile ready!"
+
 # Setup ccache
 export USE_CCACHE=1
 export CCACHE_EXEC=$(which ccache)
@@ -323,7 +392,7 @@ export CCACHE_EXEC=$(which ccache)
 source build/envsetup.sh
 
 # Lunch target
-# For PixelOS sixteen-qpr1, format is: aosp_<device>-bp1a-<buildtype>
+# For PixelOS sixteen, format is: aosp_<device>-bp1a-<buildtype>
 lunch aosp_${DEVICE_CODENAME}-bp1a-${BUILD_TYPE}
 
 print_info "Starting compilation with $JOBS jobs..."
