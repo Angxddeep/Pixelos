@@ -230,15 +230,39 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
 
     cd external/wpa_supplicant_8
 
+    # First, clean up any previous failed patch attempts
+    print_info "Cleaning up any previous patch state..."
+    git checkout -- . 2>/dev/null || true
+    git cherry-pick --abort 2>/dev/null || true
+    git reset --hard HEAD 2>/dev/null || true
+
     # Patch 1: MediaTek changes for wpa_supplicant_8
     print_info "Applying MediaTek wpa_supplicant_8 patch..."
-    git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048 || true
-    git cherry-pick --no-commit 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048 || print_warn "Patch 1 may already be applied"
+    if git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048 2>/dev/null; then
+        if ! git cherry-pick 39200b6c7b1f9ff1c1c6a6a5e4cd08c6f526d048 2>/dev/null; then
+            print_warn "Patch 1 failed to apply cleanly, skipping..."
+            git cherry-pick --abort 2>/dev/null || true
+            git checkout -- . 2>/dev/null || true
+        else
+            print_success "Patch 1 applied successfully!"
+        fi
+    else
+        print_warn "Could not fetch patch 1, skipping..."
+    fi
 
     # Patch 2: Enable WAPI for wpa_supplicant_8
     print_info "Applying WAPI enablement patch..."
-    git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 37a6e255d9d68fb483d12db550028749b280509b || true
-    git cherry-pick --no-commit 37a6e255d9d68fb483d12db550028749b280509b || print_warn "Patch 2 may already be applied"
+    if git fetch --depth=1 https://github.com/Nothing-2A/android_external_wpa_supplicant_8 37a6e255d9d68fb483d12db550028749b280509b 2>/dev/null; then
+        if ! git cherry-pick 37a6e255d9d68fb483d12db550028749b280509b 2>/dev/null; then
+            print_warn "Patch 2 failed to apply cleanly, skipping..."
+            git cherry-pick --abort 2>/dev/null || true
+            git checkout -- . 2>/dev/null || true
+        else
+            print_success "Patch 2 applied successfully!"
+        fi
+    else
+        print_warn "Could not fetch patch 2, skipping..."
+    fi
 
     cd "$BUILD_DIR"
 
