@@ -330,6 +330,17 @@ EOFAP
         fi
     fi
 
+    # =============================================================================
+    # Step 6: Clean up broken symlinks (Qualcomm repos not needed for MediaTek)
+    # =============================================================================
+
+    print_info "Removing broken Qualcomm hardware symlinks (not needed for MediaTek)..."
+    rm -rf hardware/qcom/sdm845 2>/dev/null || true
+    rm -rf hardware/qcom/sm7250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8150 2>/dev/null || true
+    rm -rf hardware/qcom/sm8250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8350 2>/dev/null || true
+
     print_success "Sources ready!"
 fi
 
