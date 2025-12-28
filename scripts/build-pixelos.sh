@@ -363,6 +363,22 @@ EOFAP
     rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
     rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
 
+    # =============================================================================
+    # Step 7: Fix livedisplay module naming in frameworks/base
+    # =============================================================================
+    # The LineageOS 23.1 hardware/lineage/interfaces uses AIDL (vendor.lineage.livedisplay-V2-java)
+    # but PixelOS frameworks/base still references old HIDL names (V2.0-java, V2.1-java)
+    
+    print_info "Fixing livedisplay module dependencies in frameworks/base..."
+    if [[ -f "frameworks/base/Android.bp" ]]; then
+        # Replace old HIDL naming with new AIDL naming
+        sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        print_success "Livedisplay dependencies fixed!"
+    else
+        print_warn "frameworks/base/Android.bp not found, skipping livedisplay fix"
+    fi
+
     print_success "Sources ready!"
 fi
 
