@@ -48,6 +48,6 @@
   <project name="priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga"
            path="vendor/xiaomi/miuicamera-xaga"
            remote="xaga-gitlab"
-           revision="16.1" />
+           revision="16" />
 
 </manifest>
