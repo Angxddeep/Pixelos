@@ -395,19 +395,22 @@ fi
 print_step "6/6 - Building PixelOS..."
 
 # =============================================================================
-# Fix livedisplay module naming (always runs, even with --build-only)
+# Fix livedisplay module dependencies (always runs, even with --build-only)
 # =============================================================================
-# The LineageOS 23.1 hardware/lineage/interfaces uses AIDL (vendor.lineage.livedisplay-V2-java)
-# but PixelOS frameworks/base still references old HIDL names (V2.0-java, V2.1-java)
+# Problem: PixelOS frameworks/base references livedisplay modules, but:
+# - Old HIDL names (V2.0-java, V2.1-java) don't exist
+# - New AIDL (V2-java) is unfrozen and incompatible with frozen framework-internal-utils
+# Solution: Remove livedisplay dependencies entirely (not essential for device function)
 
-print_info "Fixing livedisplay module dependencies in frameworks/base..."
+print_info "Removing livedisplay dependencies from frameworks/base..."
 if [[ -f "frameworks/base/Android.bp" ]]; then
-    if grep -q "vendor\.lineage\.livedisplay-V2\.0-java\|vendor\.lineage\.livedisplay-V2\.1-java" frameworks/base/Android.bp 2>/dev/null; then
-        sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
-        sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
-        print_success "Livedisplay dependencies fixed!"
+    # Remove any livedisplay-related static_libs entries
+    # This handles V2.0, V2.1, V2, V1 etc
+    if grep -q "vendor\.lineage\.livedisplay" frameworks/base/Android.bp 2>/dev/null; then
+        sed -i '/vendor\.lineage\.livedisplay/d' frameworks/base/Android.bp
+        print_success "Livedisplay dependencies removed from frameworks/base!"
     else
-        print_info "Livedisplay dependencies already correct"
+        print_info "No livedisplay dependencies found in frameworks/base"
     fi
 else
     print_warn "frameworks/base/Android.bp not found"
