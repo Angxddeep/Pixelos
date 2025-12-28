@@ -394,6 +394,25 @@ fi
 
 print_step "6/6 - Building PixelOS..."
 
+# =============================================================================
+# Fix livedisplay module naming (always runs, even with --build-only)
+# =============================================================================
+# The LineageOS 23.1 hardware/lineage/interfaces uses AIDL (vendor.lineage.livedisplay-V2-java)
+# but PixelOS frameworks/base still references old HIDL names (V2.0-java, V2.1-java)
+
+print_info "Fixing livedisplay module dependencies in frameworks/base..."
+if [[ -f "frameworks/base/Android.bp" ]]; then
+    if grep -q "vendor\.lineage\.livedisplay-V2\.0-java\|vendor\.lineage\.livedisplay-V2\.1-java" frameworks/base/Android.bp 2>/dev/null; then
+        sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        print_success "Livedisplay dependencies fixed!"
+    else
+        print_info "Livedisplay dependencies already correct"
+    fi
+else
+    print_warn "frameworks/base/Android.bp not found"
+fi
+
 # Clean if requested
 if [[ "$CLEAN_BUILD" == "true" ]]; then
     print_info "Cleaning out/ directory..."
