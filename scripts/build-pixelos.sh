@@ -413,6 +413,22 @@ else
     print_warn "frameworks/base/Android.bp not found"
 fi
 
+# =============================================================================
+# Remove incompatible modules for MediaTek builds
+# =============================================================================
+
+# Remove Qualcomm vibrator (not needed for MediaTek, has missing dependencies)
+if [[ -d "vendor/qcom/opensource/vibrator" ]]; then
+    print_info "Removing Qualcomm vibrator (not needed for MediaTek)..."
+    rm -rf vendor/qcom/opensource/vibrator
+fi
+
+# Remove incompatible livedisplay HIDL implementations (they use @2.0 but we have AIDL)
+print_info "Removing incompatible livedisplay HIDL services..."
+rm -rf hardware/lineage/livedisplay/legacymm 2>/dev/null || true
+rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
+rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
+
 # Clean if requested
 if [[ "$CLEAN_BUILD" == "true" ]]; then
     print_info "Cleaning out/ directory..."
