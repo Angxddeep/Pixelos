@@ -161,6 +161,99 @@ sed -i '/excluded-input-devices.xml/d' device/xiaomi/mt6895-common/mt6895.mk
 
 ---
 
+### 11. ✅ Removed LineageOS Internal Hardware Classes
+
+**Location deleted**: `frameworks/base/core/java/com/android/internal/lineage/hardware/`
+
+**Reason**: PixelOS frameworks/base contains LineageOS hardware classes (LineageHardwareManager, DisplayMode, HSIC, LiveDisplayConfig) that reference livedisplay AIDL interfaces we don't have.
+
+**What was changed**:
+```bash
+rm -rf frameworks/base/core/java/com/android/internal/lineage/hardware/
+```
+
+**Impact**: LineageOS hardware features disabled (LiveDisplay color calibration, hardware key customization).
+
+---
+
+### 12. ✅ Removed ParanoidSense Face Services
+
+**Location deleted**: `frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/sense/`
+
+**Reason**: ParanoidSense face biometrics references `vendor.aospa.biometrics.face.ISenseService` which we don't have.
+
+**What was changed**:
+```bash
+rm -rf frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/sense/
+```
+
+---
+
+### 13. ✅ Removed LineageOS Display Services
+
+**Location deleted**: `frameworks/base/services/core/java/com/android/server/lineage/`
+
+**Reason**: Contains LiveDisplayService, LineageHardwareService, and display controllers that depend on removed LineageOS hardware classes.
+
+**What was changed**:
+```bash
+rm -rf frameworks/base/services/core/java/com/android/server/lineage/
+# Simple sed is too aggressive, use Python script (see entry #15)
+```
+
+**Impact**: LiveDisplay features completely disabled. Display functions normally.
+
+---
+
+### 14. ✅ Complete ParanoidSense Biometrics Removal
+
+**Locations modified**:
+- `frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java`
+- `frameworks/base/services/core/java/com/android/server/biometrics/AuthService.java`
+
+**Reason**: After removing the sense/ directory (entry #12), these files still import and call `SenseProvider` and `SenseUtils` classes that no longer exist.
+
+**What was changed**:
+```bash
+# Remove imports and replace SenseUtils.canUseProvider() with false
+# FaceService.java: Remove getSenseProviders() method entirely
+# AuthService.java: Remove Sense condition from face provider check
+python3 /tmp/fix_sense_biometrics.py
+```
+
+**Python fix script** (saved as `/tmp/fix_sense_biometrics.py` in build script):
+- Removes `import ...sense.SenseProvider` and `import ...sense.SenseUtils`
+- Replaces `SenseUtils.canUseProvider()` with `false`
+- Removes the entire `getSenseProviders()` method from FaceService
+- Removes `providers.addAll(getSenseProviders())` call
+
+**Impact**: ParanoidSense face unlock completely disabled. Standard HIDL face unlock unaffected.
+
+---
+
+### 15. ✅ InputMethodManagerService LineageHardware Complete Fix
+
+**Location modified**: `frameworks/base/services/core/java/com/android/server/inputmethod/InputMethodManagerService.java`
+
+**Reason**: Simple sed deletion of `mLineageHardware` lines breaks the file because it removes parts of if-blocks and method bodies. Need a more surgical approach.
+
+**What was changed**:
+```bash
+# Use Python to properly stub out LineageHardwareManager
+python3 /tmp/fix_imms.py
+```
+
+**Python fix script** (saved in build script):
+- Removes the import statement
+- Removes the field declaration
+- Removes the initialization line
+- Replaces `mLineageHardware.isSupported(...)` calls with `false`
+- Comments out `mLineageHardware.set(...)` calls
+
+**Impact**: Touch polling rate, touch sensitivity, and touch hovering toggles disabled. Touch works normally at device default settings.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
@@ -209,4 +302,10 @@ When fixing a build error, add an entry with:
 | `vendor.aospa.biometrics.face` missing | ParanoidSense removed | See entry #9 |
 | `vendor.qti.hardware.vibrator` missing | Qualcomm refs on MTK | See entry #10 |
 | `excluded-input-devices.xml` missing | Qualcomm vibrator refs | See entry #10 |
+| `LineageHardwareManager` not found | LineageOS classes removed | See entry #11 |
+| `ISenseService` not found | ParanoidSense services | See entry #12 |
+| `LiveDisplayService` errors | LineageOS display services | See entry #13 |
+| `SenseProvider` / `SenseUtils` not found | ParanoidSense biometrics | See entry #14 |
+| `mLineageHardware` cannot find symbol | IMMS LineageOS touch features | See entry #15 |
+
 

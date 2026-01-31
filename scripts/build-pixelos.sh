@@ -460,6 +460,103 @@ sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/mt6895-comm
 sed -i '/excluded-input-devices.xml/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
 sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk 2>/dev/null || true
 
+# =============================================================================
+# Remove LineageOS services from frameworks/base (incompatible with this build)
+# =============================================================================
+print_info "Removing LineageOS services from frameworks/base..."
+
+# Remove LineageOS internal hardware classes
+rm -rf frameworks/base/core/java/com/android/internal/lineage/hardware/ 2>/dev/null || true
+
+# Remove ParanoidSense face services directory
+rm -rf frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/sense/ 2>/dev/null || true
+
+# Remove LineageOS display services
+rm -rf frameworks/base/services/core/java/com/android/server/lineage/ 2>/dev/null || true
+
+# =============================================================================
+# Fix ParanoidSense biometrics references in FaceService and AuthService
+# =============================================================================
+print_info "Fixing ParanoidSense biometrics references..."
+
+cat > /tmp/fix_sense_biometrics.py << 'EOFPY'
+import re
+import os
+
+# Fix FaceService.java
+faceservice = 'frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java'
+if os.path.exists(faceservice):
+    with open(faceservice, 'r') as f:
+        content = f.read()
+    # Remove Sense imports
+    content = re.sub(r'import com\.android\.server\.biometrics\.sensors\.face\.sense\.SenseProvider;\n', '', content)
+    content = re.sub(r'import com\.android\.server\.biometrics\.sensors\.face\.sense\.SenseUtils;\n', '', content)
+    # Replace SenseUtils.canUseProvider() with false
+    content = content.replace('SenseUtils.canUseProvider()', 'false')
+    # Remove getSenseProviders call
+    content = content.replace('providers.addAll(getSenseProviders());', '// Sense provider disabled')
+    # Remove getSenseProviders method
+    content = re.sub(r'\n\s*private List<ServiceProvider> getSenseProviders\(\) \{[\s\S]*?\n\s{8}\}', '', content)
+    with open(faceservice, 'w') as f:
+        f.write(content)
+    print(f"Fixed {faceservice}")
+
+# Fix AuthService.java
+authservice = 'frameworks/base/services/core/java/com/android/server/biometrics/AuthService.java'
+if os.path.exists(authservice):
+    with open(authservice, 'r') as f:
+        content = f.read()
+    # Remove Sense imports
+    content = re.sub(r'import com\.android\.server\.biometrics\.sensors\.face\.sense\.SenseUtils;\n', '', content)
+    # Replace SenseUtils.canUseProvider() with false
+    content = content.replace('SenseUtils.canUseProvider()', 'false')
+    with open(authservice, 'w') as f:
+        f.write(content)
+    print(f"Fixed {authservice}")
+EOFPY
+
+python3 /tmp/fix_sense_biometrics.py 2>/dev/null || true
+
+# =============================================================================
+# Fix LineageHardwareManager references in InputMethodManagerService
+# =============================================================================
+print_info "Fixing LineageHardwareManager references in InputMethodManagerService..."
+
+cat > /tmp/fix_imms.py << 'EOFPY'
+import re
+import os
+
+imms = 'frameworks/base/services/core/java/com/android/server/inputmethod/InputMethodManagerService.java'
+if os.path.exists(imms):
+    with open(imms, 'r') as f:
+        content = f.read()
+    
+    # Remove import
+    content = re.sub(r'import com\.android\.internal\.lineage\.hardware\.LineageHardwareManager;\n', '', content)
+    
+    # Remove field declaration
+    content = re.sub(r'\s*private LineageHardwareManager mLineageHardware;\n', '\n', content)
+    
+    # Remove initialization
+    content = re.sub(r'\s*mLineageHardware = LineageHardwareManager\.getInstance\(mContext\);\n', '\n', content)
+    
+    # Replace isSupported checks with false
+    content = re.sub(r'mLineageHardware\.isSupported\(\s*LineageHardwareManager\.FEATURE_HIGH_TOUCH_POLLING_RATE\)', 'false', content)
+    content = re.sub(r'mLineageHardware\.isSupported\(\s*LineageHardwareManager\.FEATURE_HIGH_TOUCH_SENSITIVITY\)', 'false', content)
+    content = re.sub(r'mLineageHardware\.isSupported\(LineageHardwareManager\.FEATURE_TOUCH_HOVERING\)', 'false', content)
+    
+    # Comment out set() calls
+    content = re.sub(r'mLineageHardware\.set\(LineageHardwareManager\.FEATURE_HIGH_TOUCH_POLLING_RATE, enabled\);', '// LineageOS touch polling disabled', content)
+    content = re.sub(r'mLineageHardware\.set\(LineageHardwareManager\.FEATURE_HIGH_TOUCH_SENSITIVITY, enabled\);', '// LineageOS touch sensitivity disabled', content)
+    content = re.sub(r'mLineageHardware\.set\(LineageHardwareManager\.FEATURE_TOUCH_HOVERING, enabled\);', '// LineageOS touch hovering disabled', content)
+    
+    with open(imms, 'w') as f:
+        f.write(content)
+    print(f"Fixed {imms}")
+EOFPY
+
+python3 /tmp/fix_imms.py 2>/dev/null || true
+
 # Clean if requested
 if [[ "$CLEAN_BUILD" == "true" ]]; then
     print_info "Cleaning out/ directory..."
