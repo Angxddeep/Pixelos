@@ -23,15 +23,20 @@ This file tracks all modifications, deletions, and patches applied during PixelO
 
 ## Applied Changes
 
-### 1. ✅ Created `aosp_xaga.mk` Product Makefile
+### 1. ✅ Created `custom_xaga.mk` Product Makefile
 
-**Location**: `device/xiaomi/xaga/aosp_xaga.mk`
+**Location**: `device/xiaomi/xaga/custom_xaga.mk`
 
-**Reason**: The xiaomi-mt6895-devs device trees are built for LineageOS and only include `lineage_xaga.mk`. PixelOS requires an `aosp_xaga.mk` file that inherits from `vendor/aosp/config/common_full_phone.mk` instead of LineageOS commons.
+**Reason**: The xiaomi-mt6895-devs device trees are built for LineageOS and only include `lineage_xaga.mk`. PixelOS sixteen-qpr1 requires a `custom_xaga.mk` file that inherits from `vendor/custom/config/common_full_phone.mk`.
+
+> [!IMPORTANT]
+> PixelOS changed naming in sixteen-qpr1:
+> - Product prefix: `aosp_` → `custom_`
+> - Vendor path: `vendor/aosp/` → `vendor/custom/`
 
 **What it does**:
-- Inherits PixelOS common configuration
-- Sets correct product name, brand, and fingerprint
+- Inherits PixelOS common configuration from `vendor/custom/`
+- Sets correct product name (`custom_xaga`), brand, and fingerprint
 - Enables GMS (Google Mobile Services)
 
 ---

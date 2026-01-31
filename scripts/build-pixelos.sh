@@ -290,10 +290,10 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
 
     # The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
     # We need to create an aosp_xaga.mk for PixelOS
-    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk << 'EOFMK'
+    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk << 'EOFMK'
 #
 # Copyright (C) 2023 The LineageOS Project
-# Copyright (C) 2024 PixelOS
+# Copyright (C) 2024-2026 PixelOS
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -306,13 +306,13 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 $(call inherit-product, device/xiaomi/xaga/device.mk)
 
 # Inherit some common PixelOS stuff.
-$(call inherit-product, vendor/aosp/config/common_full_phone.mk)
+$(call inherit-product, vendor/custom/config/common_full_phone.mk)
 
 PRODUCT_BRAND := POCO
 PRODUCT_DEVICE := xaga
 PRODUCT_MANUFACTURER := Xiaomi
 PRODUCT_MODEL := 22041216G
-PRODUCT_NAME := aosp_xaga
+PRODUCT_NAME := custom_xaga
 PRODUCT_SYSTEM_NAME := xaga_global
 
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
@@ -323,24 +323,24 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
     DeviceProduct=$(PRODUCT_SYSTEM_NAME)
 EOFMK
 
-    # Also need to add aosp_xaga to AndroidProducts.mk if not present
+    # Also need to add custom_xaga to AndroidProducts.mk if not present
     ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-    if ! grep -q "aosp_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
-        print_info "Adding aosp_xaga to AndroidProducts.mk..."
+    if ! grep -q "custom_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
+        print_info "Adding custom_xaga to AndroidProducts.mk..."
         # Check if file exists and what format it uses
         if [[ -f "$ANDROID_PRODUCTS" ]]; then
-            # Append aosp_xaga.mk to PRODUCT_MAKEFILES
-            sed -i '/PRODUCT_MAKEFILES/a\    $(LOCAL_DIR)/aosp_xaga.mk \\' "$ANDROID_PRODUCTS"
+            # Append custom_xaga.mk to PRODUCT_MAKEFILES
+            sed -i '/PRODUCT_MAKEFILES/a\    $(LOCAL_DIR)/custom_xaga.mk \\' "$ANDROID_PRODUCTS"
         else
             # Create new AndroidProducts.mk
             cat > "$ANDROID_PRODUCTS" << 'EOFAP'
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/aosp_xaga.mk \
+    $(LOCAL_DIR)/custom_xaga.mk \
     $(LOCAL_DIR)/lineage_xaga.mk
 
 COMMON_LUNCH_CHOICES := \
-    aosp_xaga-userdebug \
-    aosp_xaga-user \
+    custom_xaga-userdebug \
+    custom_xaga-user \
     lineage_xaga-userdebug
 EOFAP
         fi
@@ -446,12 +446,12 @@ print_info "Ensuring PixelOS product makefile exists..."
 
 # The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
 # We need to create an aosp_xaga.mk for PixelOS
-if [[ ! -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk" ]]; then
-    print_info "Creating aosp_xaga.mk..."
-    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/aosp_xaga.mk << 'EOFMK'
+if [[ ! -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk" ]]; then
+    print_info "Creating custom_xaga.mk..."
+    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk << 'EOFMK'
 #
 # Copyright (C) 2023 The LineageOS Project
-# Copyright (C) 2024 PixelOS
+# Copyright (C) 2024-2026 PixelOS
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -464,13 +464,13 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 $(call inherit-product, device/xiaomi/xaga/device.mk)
 
 # Inherit some common PixelOS stuff.
-$(call inherit-product, vendor/aosp/config/common_full_phone.mk)
+$(call inherit-product, vendor/custom/config/common_full_phone.mk)
 
 PRODUCT_BRAND := POCO
 PRODUCT_DEVICE := xaga
 PRODUCT_MANUFACTURER := Xiaomi
 PRODUCT_MODEL := 22041216G
-PRODUCT_NAME := aosp_xaga
+PRODUCT_NAME := custom_xaga
 PRODUCT_SYSTEM_NAME := xaga_global
 
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
@@ -482,22 +482,22 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
 EOFMK
 fi
 
-# Update AndroidProducts.mk to include aosp_xaga
+# Update AndroidProducts.mk to include custom_xaga
 ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-if ! grep -q "aosp_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
+if ! grep -q "custom_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
     print_info "Updating AndroidProducts.mk..."
     if [[ -f "$ANDROID_PRODUCTS" ]]; then
-        # Add aosp_xaga.mk to PRODUCT_MAKEFILES and COMMON_LUNCH_CHOICES
+        # Add custom_xaga.mk to PRODUCT_MAKEFILES and COMMON_LUNCH_CHOICES
         cp "$ANDROID_PRODUCTS" "${ANDROID_PRODUCTS}.bak"
         cat > "$ANDROID_PRODUCTS" << 'EOFAP'
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/aosp_xaga.mk \
+    $(LOCAL_DIR)/custom_xaga.mk \
     $(LOCAL_DIR)/lineage_xaga.mk
 
 COMMON_LUNCH_CHOICES := \
-    aosp_xaga-userdebug \
-    aosp_xaga-user \
-    aosp_xaga-eng \
+    custom_xaga-userdebug \
+    custom_xaga-user \
+    custom_xaga-eng \
     lineage_xaga-userdebug \
     lineage_xaga-user \
     lineage_xaga-eng
