@@ -30,8 +30,8 @@ DEVICE_MANUFACTURER="xiaomi"
 
 # ROM
 ROM_NAME="PixelOS"
-ROM_MANIFEST="https://github.com/PixelOS-AOSP/manifest.git"
-ROM_BRANCH="sixteen"
+ROM_MANIFEST="https://github.com/PixelOS-AOSP/android_manifest.git"
+ROM_BRANCH="${ROM_BRANCH:-sixteen-qpr1}"
 
 # Build
 BUILD_TYPE="${BUILD_TYPE:-userdebug}"
@@ -514,15 +514,17 @@ export CCACHE_EXEC=$(which ccache)
 # Source build environment
 source build/envsetup.sh
 
-# Lunch target
-# For PixelOS sixteen, format is: aosp_<device>-bp1a-<buildtype>
-lunch aosp_${DEVICE_CODENAME}-bp1a-${BUILD_TYPE}
+# Setup device with breakfast (new PixelOS sixteen-qpr1 method)
+# This replaces the old lunch command
+print_info "Setting up device with breakfast..."
+breakfast ${DEVICE_CODENAME}
 
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
 
-# Build
-mka bacon -j"$JOBS" 2>&1 | tee build.log
+# Build using new PixelOS command (replaces mka bacon)
+m pixelos -j"$JOBS" 2>&1 | tee build.log
+
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
