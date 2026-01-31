@@ -432,6 +432,34 @@ rm -rf hardware/lineage/livedisplay/legacymm 2>/dev/null || true
 rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
 rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
 
+# =============================================================================
+# Remove ParanoidSense (conflicts with Xiaomi's megvii library)
+# =============================================================================
+if [[ -d "packages/apps/ParanoidSense" ]]; then
+    print_info "Removing ParanoidSense (conflicts with Xiaomi megvii)..."
+    rm -rf packages/apps/ParanoidSense
+fi
+
+# Remove ParanoidSense from PixelOS common config
+if grep -q "ParanoidSense" vendor/custom/config/common.mk 2>/dev/null; then
+    print_info "Removing ParanoidSense from PRODUCT_PACKAGES..."
+    sed -i '/ParanoidSense/d' vendor/custom/config/common.mk
+fi
+
+# Remove ParanoidSense biometrics dependency from frameworks/base
+if grep -q "vendor.aospa.biometrics.face" frameworks/base/services/core/Android.bp 2>/dev/null; then
+    print_info "Removing ParanoidSense biometrics from frameworks/base..."
+    sed -i '/vendor\.aospa\.biometrics\.face/d' frameworks/base/services/core/Android.bp
+fi
+
+# =============================================================================
+# Remove Qualcomm vibrator references from device tree (wrong for MediaTek)
+# =============================================================================
+print_info "Removing Qualcomm vibrator references from device tree..."
+sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
+sed -i '/excluded-input-devices.xml/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
+sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk 2>/dev/null || true
+
 # Clean if requested
 if [[ "$CLEAN_BUILD" == "true" ]]; then
     print_info "Cleaning out/ directory..."

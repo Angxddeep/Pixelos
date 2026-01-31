@@ -112,6 +112,55 @@ sed -i '/vendor\.lineage\.livedisplay/d' frameworks/base/Android.bp
 
 ---
 
+### 8. ✅ Removed ParanoidSense (Face Unlock)
+
+**Locations**:
+- Deleted: `packages/apps/ParanoidSense`
+- Modified: `vendor/custom/config/common.mk` (removed from PRODUCT_PACKAGES)
+
+**Reason**: ParanoidSense's `libmegface` conflicts with Xiaomi's `hardware/xiaomi/megvii`. Both define the same library.
+
+**What was changed**:
+```bash
+rm -rf packages/apps/ParanoidSense
+sed -i '/ParanoidSense/d' vendor/custom/config/common.mk
+```
+
+**Impact**: PixelOS face unlock disabled. Xiaomi's vendor face unlock may still work.
+
+---
+
+### 9. ✅ Removed ParanoidSense Biometrics from frameworks/base
+
+**Location**: `frameworks/base/services/core/Android.bp`
+
+**Reason**: After removing ParanoidSense, frameworks/base still depended on `vendor.aospa.biometrics.face`.
+
+**What was changed**:
+```bash
+sed -i '/vendor\.aospa\.biometrics\.face/d' frameworks/base/services/core/Android.bp
+```
+
+---
+
+### 10. ✅ Removed Qualcomm Vibrator References from Device Tree
+
+**Locations**:
+- `device/xiaomi/mt6895-common/mt6895.mk`
+- `device/xiaomi/xaga/custom_xaga.mk`
+
+**Reason**: xiaomi-mt6895-devs incorrectly included Qualcomm vibrator refs (`vendor.qti.hardware.vibrator.service`, `excluded-input-devices.xml`). Not needed for MediaTek.
+
+**What was changed**:
+```bash
+sed -i '/vendor.qti.hardware.vibrator/d' device/xiaomi/mt6895-common/mt6895.mk
+sed -i '/excluded-input-devices.xml/d' device/xiaomi/mt6895-common/mt6895.mk
+```
+
+**Impact**: None. MediaTek vibration handled by `hardware/mediatek/` and vendor blobs.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
@@ -155,3 +204,9 @@ When fixing a build error, add an entry with:
 | `hardware/qcom/*` errors | Wrong platform | See entry #6 |
 | WiFi not working | Missing patches | See entry #5 |
 | `lunch` target not found | Missing makefile | See entry #1 |
+| `custom_xaga` not found | Wrong product prefix | See entry #1 |
+| `libmegface already defined` | ParanoidSense conflict | See entry #8 |
+| `vendor.aospa.biometrics.face` missing | ParanoidSense removed | See entry #9 |
+| `vendor.qti.hardware.vibrator` missing | Qualcomm refs on MTK | See entry #10 |
+| `excluded-input-devices.xml` missing | Qualcomm vibrator refs | See entry #10 |
+
