@@ -64,20 +64,25 @@ cat > vendor/custom/build/tasks/fb_package.mk << 'EOFMK'
 # Adapted from AresOS for PixelOS
 # Usage: m fb_package (after a successful m pixelos build)
 
-# Construct the output filename using PixelOS naming convention
-# Matches the pattern: PixelOS_<device>-<version>-<date>-FASTBOOT.zip
-PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(CUSTOM_BUILD_TYPE)-FASTBOOT.zip
-
-SHA256 := prebuilts/build-tools/path/$(HOST_PREBUILT_TAG)/sha256sum
+# Construct the output filename using the build number
+PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(BUILD_NUMBER).zip
+FB_GEN_DIR := $(PRODUCT_OUT)/fastboot_gen
 
 .PHONY: fb_package
 fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(call pretty,"Package fastboot: $(PIXELOS_FB_PACKAGE)")
-	PATH=$(INTERNAL_USERIMAGES_BINARY_PATHS):$(dir $(ZIP2ZIP)):$$PATH \
-		$(IMG_FROM_TARGET_FILES_EXTENDED) \
-		$(BUILT_TARGET_FILES_PACKAGE) $(PIXELOS_FB_PACKAGE)
-	$(hide) $(SHA256) $(PIXELOS_FB_PACKAGE) | sed "s|$(PRODUCT_OUT)/||" > $(PIXELOS_FB_PACKAGE).sha256sum
-	$(hide) rm -rf $(call intermediates-dir-for,PACKAGING,target_files)
+	$(hide) rm -rf $(FB_GEN_DIR)
+	$(hide) mkdir -p $(FB_GEN_DIR)
+	$(hide) echo "Extracting images..."
+	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/images.zip
+	$(hide) unzip -q $(FB_GEN_DIR)/images.zip -d $(FB_GEN_DIR)
+	$(hide) rm $(FB_GEN_DIR)/images.zip
+	$(hide) echo "Copying fastboot tools..."
+	$(hide) cp -r $(TOP)/fastboot/* $(FB_GEN_DIR)/
+	$(hide) chmod +x $(FB_GEN_DIR)/linux_installation.sh
+	$(hide) echo "Zipping package..."
+	$(hide) cd $(FB_GEN_DIR) && zip -r $(PIXELOS_FB_PACKAGE) .
+	$(hide) rm -rf $(FB_GEN_DIR)
 	@echo "Package Complete: $(PIXELOS_FB_PACKAGE)" >&2
 EOFMK
 
