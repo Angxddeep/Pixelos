@@ -602,7 +602,7 @@ export CCACHE_EXEC=$(which ccache)
 source build/envsetup.sh
 
 # Export TARGET_RELEASE for Android 14/15+ builds (just in case)
-export TARGET_RELEASE=trunk_staging
+# export TARGET_RELEASE=trunk_staging
 
 # Unset potential stale variables
 unset TARGET_PRODUCT
