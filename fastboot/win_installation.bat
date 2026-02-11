@@ -30,7 +30,7 @@ if /i "%formatData%" equ "Y" (
 
 echo.
 
-set "requiredImages=apusys.img audio_dsp.img ccu.img dpm.img boot.img vendor_boot.img dtbo.img gpueb.img gz.img lk.img mcf_ota.img mcupm.img md1img.img mvpu_algo.img pi_img.img preloader_xaga.bin scp.img spmfw.img sspm.img tee.img vcp.img vbmeta.img vbmeta_system.img vbmeta_vendor.img super.img"
+set "requiredImages=apusys.img audio_dsp.img ccu.img dpm.img boot.img vendor_boot.img dtbo.img gpueb.img gz.img lk.img mcf_ota.img mcupm.img md1img.img mvpu_algo.img pi_img.img scp.img spmfw.img sspm.img tee.img vcp.img vbmeta.img vbmeta_system.img vbmeta_vendor.img super.img"
 
 setlocal enabledelayedexpansion
 set "missingImages="
@@ -77,8 +77,10 @@ tools\windows\fastboot.exe flash mcupm_a images\mcupm.img
 tools\windows\fastboot.exe flash md1img_a images\md1img.img
 tools\windows\fastboot.exe flash mvpu_algo_a images\mvpu_algo.img
 tools\windows\fastboot.exe flash pi_img_a images\pi_img.img
-tools\windows\fastboot.exe flash preloader1 images\preloader_xaga.bin
-tools\windows\fastboot.exe flash preloader2 images\preloader_xaga.bin
+if exist images\preloader_xaga.bin (
+    tools\windows\fastboot.exe flash preloader1 images\preloader_xaga.bin
+    tools\windows\fastboot.exe flash preloader2 images\preloader_xaga.bin
+)
 tools\windows\fastboot.exe flash scp_a images\scp.img
 tools\windows\fastboot.exe flash spmfw_a images\spmfw.img
 tools\windows\fastboot.exe flash sspm_a images\sspm.img

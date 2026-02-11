@@ -59,7 +59,7 @@ requiredImages=(
 )
 
 additionalRequiredFiles=(
-    "super.img" "preloader_xaga.bin"
+    "super.img"
 )
 
 # Check for missing images
