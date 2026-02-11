@@ -24,7 +24,7 @@ The ROM is built on **Google Cloud Compute Engine** VMs using Ubuntu 22.04 LTS.
 | SoC | MediaTek Dimensity 8100 (MT6895) |
 | Lunch Target | `aosp_xaga-bp1a-userdebug` |
 | Build Directory | `~/pixelos` |
-| Build Script | `scripts/build-pixelos.sh` |
+| Build Script | ``~/Pixelos/scripts/build-pixelos.sh` |
 
 > **Available Branches**: `sixteen-qpr1` (default), `sixteen-qpr2`, `sixteen`
 

@@ -557,6 +557,18 @@ EOFPY
 
 python3 /tmp/fix_imms.py 2>/dev/null || true
 
+# =============================================================================
+# Optional: Apply fastboot package patch
+# =============================================================================
+if [[ ! -f "vendor/custom/build/tasks/fb_package.mk" ]]; then
+    print_info "Applying optional fastboot package patch..."
+    if [[ -f "scripts/apply_fb_package_patch.sh" ]]; then
+        bash scripts/apply_fb_package_patch.sh
+    else
+        print_warn "Fastboot package patch script not found, skipping..."
+    fi
+fi
+
 # Clean if requested
 if [[ "$CLEAN_BUILD" == "true" ]]; then
     print_info "Cleaning out/ directory..."

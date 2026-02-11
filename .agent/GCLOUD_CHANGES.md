@@ -254,6 +254,70 @@ python3 /tmp/fix_imms.py
 
 ---
 
+### 16. ✅ Removed LineageHardwareManager from Settings DisplaySettings
+
+**Location modified**: `packages/apps/Settings/src/com/android/settings/DisplaySettings.java`
+
+**Reason**: `DisplaySettings.java` references `LineageHardwareManager` for touch polling rate and touch sensitivity features. These classes were removed from `frameworks/base` (entry #11), so the Settings app can no longer resolve them.
+
+**What was changed**:
+```bash
+# Use Python to remove LineageHardwareManager references
+# - Removed LineageHardwareManager import
+# - Removed stray closing brace from previously deleted block
+# - Removed hardware.isSupported(FEATURE_HIGH_TOUCH_SENSITIVITY) block
+# - getNonIndexableKeys() now just calls super and returns
+python3 -c "<inline script>"
+```
+
+**Impact**: High touch polling rate and high touch sensitivity toggles won't appear in Settings. Touch works normally at device default settings. Same impact scope as entry #15.
+
+---
+
+### 17. ✅ Created Git Placeholders for Deleted Repo Projects
+
+**Locations**: Multiple deleted directories that `repo` still tracks:
+- `hardware/qcom/sdm845/{display,gps}`
+- `hardware/qcom/sm7250/{display,gps}`
+- `hardware/qcom/sm8150/{display,gps}`
+- `hardware/qcom/audio`, `bt`, `camera`, `display`, `gps`, `media`, `data/ipacfg-mgr`
+- `vendor/qcom/opensource/vibrator`
+- `packages/apps/ParanoidSense`
+
+**Reason**: The `build-manifest.xml` build step runs `repo manifest -r` which needs every manifest project to be a valid git directory. Directories deleted by entries #4, #6, #8 caused `FileNotFoundError` crashes during this step.
+
+**What was changed**:
+```bash
+# Create empty git repos at all missing project paths
+repo list | while IFS=' : ' read -r path name; do
+  path=$(echo "$path" | xargs)
+  if [ -n "$path" ] && [ ! -d "$path/.git" ]; then
+    mkdir -p "$path"
+    git -C "$path" init && git -C "$path" commit --allow-empty -m "placeholder"
+  fi
+done
+```
+
+**Impact**: None on functionality. These are empty placeholder repos that satisfy `repo manifest` but contribute no code to the build.
+
+---
+
+### 18. ✅ Optional: Fastboot Package Build Support (XagaForge)
+
+**Locations**: New files in `vendor/custom/build/`:
+- `tasks/fb_package.mk` — Make target for `m fb_package`
+- `tools/releasetools/Android.bp` — Python binary definition
+- `tools/releasetools/img_from_target_files_extended.py` — Image extraction script
+- `core/config.mk` — Added `IMG_FROM_TARGET_FILES_EXTENDED` variable
+
+**Source**: [AresOS commit 19afe7c](https://github.com/AresOS-UDC/vendor_lineage/commit/19afe7c7e98c9ff5f57c57d09edfa954142e65b6) adapted for PixelOS `vendor/custom`
+
+**What was changed**: Applied via `scripts/apply_fb_package_patch.sh`. Adds a `fb_package` build target that generates a fastboot-flashable ZIP containing all partition images from the target-files package.
+
+**Impact**: Optional — does not affect the normal `m pixelos` build. Run `m fb_package` after a successful build to generate the fastboot package.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
@@ -307,5 +371,7 @@ When fixing a build error, add an entry with:
 | `LiveDisplayService` errors | LineageOS display services | See entry #13 |
 | `SenseProvider` / `SenseUtils` not found | ParanoidSense biometrics | See entry #14 |
 | `mLineageHardware` cannot find symbol | IMMS LineageOS touch features | See entry #15 |
+| `LineageHardwareManager` in DisplaySettings | Settings touch feature toggles | See entry #16 |
+| `build-manifest.xml` FileNotFoundError | Deleted repo project dirs | See entry #17 |
 
 
