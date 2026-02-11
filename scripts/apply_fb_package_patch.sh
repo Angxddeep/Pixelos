@@ -65,7 +65,7 @@ cat > vendor/custom/build/tasks/fb_package.mk << 'EOFMK'
 # Usage: m fb_package (after a successful m pixelos build)
 
 # Construct the output filename using the build number
-PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(BUILD_NUMBER).zip
+PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(shell date +%Y%m%d-%H%M).zip
 FB_GEN_DIR := $(PRODUCT_OUT)/fastboot_gen
 
 .PHONY: fb_package
