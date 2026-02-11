@@ -318,6 +318,61 @@ done
 
 ---
 
+### 19. ✅ Restored Vibrator HAL (Reverts Entry #10)
+
+**Locations**: `device/xiaomi/mt6895-common/mt6895.mk`, `vendor/qcom/opensource/vibrator/excluded-input-devices.xml`
+
+**Reason**: Entry #10 removed `vendor.qti.hardware.vibrator.service` and `excluded-input-devices.xml` assuming they were Qualcomm-specific. However, the xiaomi-mt6895-devs vendor blobs ship this vibrator HAL service. Removing it caused vibration to stop working entirely and the vibration settings to disappear.
+
+**What was changed**:
+- Restored `PRODUCT_PACKAGES += vendor.qti.hardware.vibrator.service` in `mt6895.mk`
+- Restored `PRODUCT_COPY_FILES` for `excluded-input-devices.xml` in `mt6895.mk`
+- Recreated `vendor/qcom/opensource/vibrator/excluded-input-devices.xml`
+- Removed the `sed` commands from `build-pixelos.sh` that stripped these lines
+
+**Impact**: Vibration now works. Vibration settings restored in Settings app.
+
+---
+
+### 20. ✅ Added MIUI Camera from XagaForge
+
+**Locations**:
+- `vendor/xiaomi/miuicamera-xaga/` — cloned from `gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga` (branch `16.1`)
+- `device/xiaomi/xaga/custom_xaga.mk` — added `inherit-product` for `device.mk`
+- `device/xiaomi/xaga/BoardConfigXaga.mk` — added `include` for `BoardConfig.mk`
+
+**What was changed**: Cloned the MIUI Camera vendor package and integrated it into the device tree makefiles so it gets included in the build.
+
+**Impact**: MIUI Camera app is now included in the ROM build.
+
+---
+
+### 21. ✅ Added Build Upload Script
+
+**Location**: `scripts/upload-build.sh`
+
+**What was changed**: New script that generates a fastboot package (`m fb_package`) and uploads ROM ZIP, fastboot ZIP, `boot.img`, and `vendor_boot.img` to `gs://pixelos-xaga-builds`.
+
+**Usage**: `bash ~/Pixelos/scripts/upload-build.sh` (from `~/pixelos`)
+
+**Impact**: Convenience script for post-build packaging and download.
+
+---
+
+### 22. ✅ Restored Vibrator Source Code (Reverts Entry #4)
+
+**Locations**: `vendor/qcom/opensource/vibrator`
+
+**Reason**: The build failed with `includes non-existent modules in PRODUCT_PACKAGES: vendor.qti.hardware.vibrator.service`. This confirms that the MediaTek device tree expects to build the Qualcomm vibrator HAL from Use, not just use a prebuilt. Entry #4 had deleted this directory.
+
+**What was changed**:
+- Commented out the `rm -rf vendor/qcom/opensource/vibrator` block in `scripts/build-pixelos.sh`.
+- Instructed user to restore the directory via `repo sync`.
+
+**Impact**: Builds can now compile the vibrator HAL service required by the device tree.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
@@ -364,8 +419,9 @@ When fixing a build error, add an entry with:
 | `custom_xaga` not found | Wrong product prefix | See entry #1 |
 | `libmegface already defined` | ParanoidSense conflict | See entry #8 |
 | `vendor.aospa.biometrics.face` missing | ParanoidSense removed | See entry #9 |
-| `vendor.qti.hardware.vibrator` missing | Qualcomm refs on MTK | See entry #10 |
-| `excluded-input-devices.xml` missing | Qualcomm vibrator refs | See entry #10 |
+| `vendor.qti.hardware.vibrator` missing | Vibrator HAL removed | See entry #19 (reverts #10) |
+| `excluded-input-devices.xml` missing | Vibrator config removed | See entry #19 (reverts #10) |
+| No vibration / settings missing | Vibrator HAL not in build | See entry #19 |
 | `LineageHardwareManager` not found | LineageOS classes removed | See entry #11 |
 | `ISenseService` not found | ParanoidSense services | See entry #12 |
 | `LiveDisplayService` errors | LineageOS display services | See entry #13 |

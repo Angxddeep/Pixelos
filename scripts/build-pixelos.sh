@@ -238,6 +238,26 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
         vendor/$DEVICE_MANUFACTURER/miuicamera-xaga
 
+    # Add MIUI Camera to device makefiles if not present
+    print_info "Integrating MIUI Camera into device tree..."
+    if [[ -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk" ]]; then
+        if ! grep -q "miuicamera-xaga/device.mk" device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk; then
+            echo "" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            echo "# MIUI Camera" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            echo "\$(call inherit-product, vendor/$DEVICE_MANUFACTURER/miuicamera-xaga/device.mk)" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            print_success "Added MIUI Camera to custom_xaga.mk"
+        fi
+    fi
+
+    if [[ -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/BoardConfigXaga.mk" ]]; then
+        if ! grep -q "miuicamera-xaga/BoardConfig.mk" device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/BoardConfigXaga.mk; then
+            echo "" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/BoardConfigXaga.mk
+            echo "# MIUI Camera" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/BoardConfigXaga.mk
+            echo "include vendor/$DEVICE_MANUFACTURER/miuicamera-xaga/BoardConfig.mk" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/BoardConfigXaga.mk
+            print_success "Added MIUI Camera to BoardConfigXaga.mk"
+        fi
+    fi
+
     # =============================================================================
     # Step 4: Apply Required Patches
     # =============================================================================
@@ -420,11 +440,12 @@ fi
 # Remove incompatible modules for MediaTek builds
 # =============================================================================
 
+# Vibrator HAL is needed (restored in entry #19)
 # Remove Qualcomm vibrator (not needed for MediaTek, has missing dependencies)
-if [[ -d "vendor/qcom/opensource/vibrator" ]]; then
-    print_info "Removing Qualcomm vibrator (not needed for MediaTek)..."
-    rm -rf vendor/qcom/opensource/vibrator
-fi
+# if [[ -d "vendor/qcom/opensource/vibrator" ]]; then
+#    print_info "Removing Qualcomm vibrator (not needed for MediaTek)..."
+#    rm -rf vendor/qcom/opensource/vibrator
+# fi
 
 # Remove incompatible livedisplay HIDL implementations (they use @2.0 but we have AIDL)
 print_info "Removing incompatible livedisplay HIDL services..."
@@ -456,9 +477,10 @@ fi
 # Remove Qualcomm vibrator references from device tree (wrong for MediaTek)
 # =============================================================================
 print_info "Removing Qualcomm vibrator references from device tree..."
-sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
-sed -i '/excluded-input-devices.xml/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
-sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk 2>/dev/null || true
+# Vibrator HAL is needed (restored in entry #19)
+# sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
+# sed -i '/excluded-input-devices.xml/d' device/$DEVICE_MANUFACTURER/mt6895-common/mt6895.mk 2>/dev/null || true
+# sed -i '/vendor.qti.hardware.vibrator/d' device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk 2>/dev/null || true
 
 # =============================================================================
 # Remove LineageOS services from frameworks/base (incompatible with this build)
@@ -660,7 +682,20 @@ print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
 
 # Build using new PixelOS command (replaces mka bacon)
-m pixelos -j"$JOBS" 2>&1 | tee build.log
+if m pixelos -j"$JOBS" 2>&1 | tee build.log; then
+    print_success "ROM Build Successful!"
+    
+    # Automatically build fastboot package
+    print_info "Generating Fastboot Package (m fb_package)..."
+    if m fb_package; then
+        print_success "Fastboot Package Generated Successfully!"
+    else
+        print_error "Fastboot Package Generation Failed!"
+    fi
+else
+    print_error "ROM Build Failed!"
+    exit 1
+fi
 
 
 END_TIME=$(date +%s)

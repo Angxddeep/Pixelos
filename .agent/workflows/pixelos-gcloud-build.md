@@ -48,6 +48,8 @@ The ROM is built on **Google Cloud Compute Engine** VMs using Ubuntu 22.04 LTS.
 ## Important Files
 
 - `scripts/build-pixelos.sh` - Main build script
+- `scripts/apply_fb_package_patch.sh` - Applies fastboot package build support
+- `scripts/upload-build.sh` - Uploads build artifacts to GCloud Storage
 - `scripts/env-setup.sh` - Environment setup for VM
 - `scripts/gcloud-setup.sh` - VM creation script
 - `local_manifests/xaga.xml` - Device manifest
@@ -58,6 +60,12 @@ The ROM is built on **Google Cloud Compute Engine** VMs using Ubuntu 22.04 LTS.
 ```bash
 # Full build
 bash scripts/build-pixelos.sh
+
+# Build fastboot package (after successful build)
+m fb_package
+
+# Upload build artifacts to GCloud Storage
+bash scripts/upload-build.sh
 
 # Sync sources only
 bash scripts/build-pixelos.sh --sync-only
@@ -80,8 +88,9 @@ The build script uses the new PixelOS build commands:
 
 1. **wpa_supplicant_8 patches** - MediaTek WiFi & WAPI support
 2. **Livedisplay dependencies removed** - AIDL/HIDL incompatibility
-3. **Qualcomm vibrator removed** - Not needed for MediaTek
-4. **aosp_xaga.mk created** - PixelOS product makefile (device trees are for LineageOS)
+3. **Vibrator HAL restored** - MediaTek uses `vendor.qti.hardware.vibrator` (reverted previous removal)
+4. **MIUI Camera integrated** - Cloned from XagaForge and added to device tree
+5. **aosp_xaga.mk created** - PixelOS product makefile (device trees are for LineageOS)
 
 ## Troubleshooting Reference
 
