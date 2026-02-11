@@ -152,6 +152,9 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     if [[ -d "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME" ]]; then
         print_info "Updating device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME..."
         cd "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME"
+        # Reset any local changes (AndroidProducts.mk, custom_xaga.mk) to insure clean state for breakfast
+        git checkout . 2>/dev/null || true
+        git clean -fd 2>/dev/null || true
         git fetch origin && git reset --hard origin/$DEVICE_TREE_BRANCH
         cd "$BUILD_DIR"
     else
@@ -601,9 +604,17 @@ source build/envsetup.sh
 # Export TARGET_RELEASE for Android 14/15+ builds (just in case)
 export TARGET_RELEASE=trunk_staging
 
+# Unset potential stale variables
+unset TARGET_PRODUCT
+unset TARGET_BUILD_VARIANT
+unset TARGET_BUILD_TYPE
+
 # Setup device with breakfast (matches user manual flow)
 print_info "Setting up device with breakfast..."
-breakfast "$DEVICE_CODENAME"
+if ! breakfast "$DEVICE_CODENAME"; then
+    print_error "Breakfast failed for $DEVICE_CODENAME"
+    exit 1
+fi
 
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
