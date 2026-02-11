@@ -95,36 +95,67 @@ FB_GEN_DIR := $(PRODUCT_OUT)/fastboot_gen
 # Path to fastboot tools (injected by apply_fb_package_patch.sh)
 PIXELOS_FASTBOOT_DIR := __FASTBOOT_DIR__
 
+# Firmware partition images to pull from build output
+FIRMWARE_IMAGES := \
+    apusys.img audio_dsp.img boot.img ccu.img dpm.img dtbo.img \
+    gpueb.img gz.img lk.img mcf_ota.img mcupm.img md1img.img \
+    mvpu_algo.img pi_img.img scp.img spmfw.img sspm.img tee.img \
+    vcp.img vbmeta.img vbmeta_system.img vbmeta_vendor.img \
+    vendor_boot.img super.img
+
 .PHONY: fb_package
 fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(call pretty,"Package fastboot: $(PIXELOS_FB_PACKAGE)")
 	$(hide) rm -rf $(FB_GEN_DIR)
-	$(hide) mkdir -p $(FB_GEN_DIR)
-	$(hide) echo "Extracting images..."
-	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/images.zip
-	$(hide) unzip -q $(FB_GEN_DIR)/images.zip -d $(FB_GEN_DIR)
-	$(hide) rm $(FB_GEN_DIR)/images.zip
+	$(hide) mkdir -p $(FB_GEN_DIR)/images
+	@echo "=== Collecting images from build output ==="
+	$(hide) for img in $(FIRMWARE_IMAGES); do \
+		if [ -f "$(PRODUCT_OUT)/$$img" ]; then \
+			echo "  Copying $$img"; \
+			cp $(PRODUCT_OUT)/$$img $(FB_GEN_DIR)/images/$$img; \
+		fi; \
+	done
+	$(hide) if [ -f "$(PRODUCT_OUT)/preloader_xaga.bin" ]; then \
+		echo "  Copying preloader_xaga.bin"; \
+		cp $(PRODUCT_OUT)/preloader_xaga.bin $(FB_GEN_DIR)/images/preloader_xaga.bin; \
+	fi
+	@echo "=== Extracting additional images from target-files ==="
+	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path _tf_images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/tf_images.zip
+	$(hide) unzip -qo $(FB_GEN_DIR)/tf_images.zip -d $(FB_GEN_DIR)
+	$(hide) for img in $(FB_GEN_DIR)/_tf_images/*.img; do \
+		base=$$(basename $$img); \
+		if [ ! -f "$(FB_GEN_DIR)/images/$$base" ]; then \
+			echo "  Adding $$base from target-files"; \
+			cp $$img $(FB_GEN_DIR)/images/$$base; \
+		fi; \
+	done
+	$(hide) rm -rf $(FB_GEN_DIR)/tf_images.zip $(FB_GEN_DIR)/_tf_images
+	$(hide) if [ -f "$(FB_GEN_DIR)/android-info.txt" ]; then \
+		mv $(FB_GEN_DIR)/android-info.txt $(FB_GEN_DIR)/images/android-info.txt 2>/dev/null || true; \
+	fi
+	@echo "=== Copying fastboot tools ==="
 	$(hide) if [ -d "$(PIXELOS_FASTBOOT_DIR)" ]; then \
-		echo "Copying fastboot tools from $(PIXELOS_FASTBOOT_DIR)..."; \
 		cp -r $(PIXELOS_FASTBOOT_DIR)/tools $(FB_GEN_DIR)/tools; \
 		cp $(PIXELOS_FASTBOOT_DIR)/linux_installation.sh $(FB_GEN_DIR)/linux_installation.sh; \
 		cp $(PIXELOS_FASTBOOT_DIR)/win_installation.bat $(FB_GEN_DIR)/win_installation.bat; \
 		chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
 	elif [ -d "$(TOP)/fastboot" ]; then \
-		echo "Copying fastboot tools from $(TOP)/fastboot..."; \
 		cp -r $(TOP)/fastboot/tools $(FB_GEN_DIR)/tools; \
 		cp $(TOP)/fastboot/linux_installation.sh $(FB_GEN_DIR)/linux_installation.sh; \
 		cp $(TOP)/fastboot/win_installation.bat $(FB_GEN_DIR)/win_installation.bat; \
 		chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
 	else \
-		echo "ERROR: fastboot tools not found at $(PIXELOS_FASTBOOT_DIR) or $(TOP)/fastboot!"; \
-		echo "Re-run: bash scripts/apply_fb_package_patch.sh"; \
+		echo "ERROR: fastboot tools not found!"; \
 		exit 1; \
 	fi
-	$(hide) echo "Zipping package..."
+	@echo "=== Creating ZIP package ==="
 	$(hide) cd $(FB_GEN_DIR) && zip -r $(abspath $(PIXELOS_FB_PACKAGE)) .
 	$(hide) ln -sf $(notdir $(PIXELOS_FB_PACKAGE)) $(PRODUCT_OUT)/latest-fastboot.zip
 	$(hide) rm -rf $(FB_GEN_DIR)
+	@echo ""
+	@echo "=== Package contents ==="
+	@unzip -l $(PIXELOS_FB_PACKAGE) | tail -n +4 | head -n -2
+	@echo ""
 	@echo "Package Complete: $(PIXELOS_FB_PACKAGE)" >&2
 EOFMK
 

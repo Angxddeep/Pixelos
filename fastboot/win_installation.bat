@@ -17,7 +17,7 @@ if not exist "tools\windows\fastboot.exe" (
    exit
 )
 
-set /p formatData=Do you want to format data for a clean flash? (Y/N):
+set /p formatData=Do you want to format data for a clean flash? (Y/N): 
 
 if /i "%formatData%" equ "Y" (
     powershell -Command "Write-Host 'Formatting data...' -ForegroundColor Green"
@@ -61,6 +61,8 @@ powershell -Command "Write-Host 'Verification completed. Continuing...' -Foregro
 echo.
 powershell -Command "Write-Host 'Starting the flashing process...' -ForegroundColor Blue"
 echo.
+
+REM WARNING: Do NOT use 'fastboot reboot recovery' on xaga — it can brick the device!
 
 tools\windows\fastboot.exe flash apusys_a images\apusys.img
 tools\windows\fastboot.exe flash audio_dsp_a images\audio_dsp.img

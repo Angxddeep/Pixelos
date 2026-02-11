@@ -84,6 +84,8 @@ if [ "${#missingImages[@]}" -ne 0 ]; then
     fi
 fi
 
+# WARNING: Do NOT use 'fastboot reboot recovery' on xaga — it can brick the device!
+
 # Start flashing process
 printf "${BLUE}Starting the flashing process...${NC}\n"
 
