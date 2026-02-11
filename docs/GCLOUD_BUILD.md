@@ -136,12 +136,13 @@ bash ~/Pixelos/scripts/setup_custom_xaga.sh
 # 3. Apply fastboot package patch (creates fb_package.mk with pixelos_fb target)
 bash ~/Pixelos/scripts/apply_fb_package_patch.sh
 
-# 4. Source build environment and lunch
-source build/envsetup.sh
-lunch custom_xaga-userdebug
+# 4. Build fastboot ROM (automated - handles lunch/breakfast):
+bash ~/Pixelos/scripts/build-fastboot.sh
 
-# 5. Build fastboot ROM only (NO recovery ROM)
-m pixelos_fb
+# OR manually:
+# source build/envsetup.sh
+# breakfast xaga  # or: lunch lineage_xaga-userdebug if breakfast fails
+# m pixelos_fb
 ```
 
 **Alternative:** If you want to build recovery ROM first, then fastboot package:

@@ -183,6 +183,19 @@ else
     exit 1
 fi
 
+# Verify AndroidProducts.mk was created correctly
+if [[ -f "$PRODUCTS_MK" ]]; then
+    if grep -q "custom_xaga.mk" "$PRODUCTS_MK"; then
+        print_success "AndroidProducts.mk contains custom_xaga.mk"
+    else
+        print_error "AndroidProducts.mk doesn't contain custom_xaga.mk!"
+        print_error "Please check $PRODUCTS_MK manually"
+    fi
+else
+    print_error "AndroidProducts.mk was not created!"
+    exit 1
+fi
+
 print_success "=========================================="
 print_success "Setup complete!"
 print_success "=========================================="
@@ -192,13 +205,19 @@ echo ""
 print_info "1. Apply fastboot package patch:"
 echo "   bash ~/Pixelos/scripts/apply_fb_package_patch.sh"
 echo ""
-print_info "2. Source build environment and lunch:"
+print_info "2. Source build environment:"
 echo "   source build/envsetup.sh"
-echo "   lunch custom_xaga-userdebug"
 echo ""
-print_info "3. Build fastboot ROM (NO recovery ROM):"
+print_info "3. Try breakfast first (recommended):"
+echo "   breakfast xaga"
+echo ""
+print_info "4. If breakfast fails, use lineage product (will still build PixelOS):"
+echo "   lunch lineage_xaga-userdebug"
+echo ""
+print_info "5. Build fastboot ROM (NO recovery ROM):"
 echo "   m pixelos_fb"
 echo ""
-print_warn "Note: Use 'lunch custom_xaga-userdebug' instead of 'breakfast xaga'"
-print_warn "      to avoid '32-bit-app-only product' errors."
+print_warn "Note: If you get '32-bit-app-only product' error, the BoardConfig"
+print_warn "      may need TARGET_SUPPORTS_64_BIT_APPS := true"
+print_warn "      Check: device/xiaomi/xaga/BoardConfig.mk or BoardConfigXaga.mk"
 echo ""
