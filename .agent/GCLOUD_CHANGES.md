@@ -435,13 +435,83 @@ m fb_package
 
 ---
 
+### 25. ✅ Created MIUI Camera Debug Scripts
+
+**Locations**: 
+- `scripts/debug-miui-camera.sh` - Linux/Mac version
+- `scripts/debug-miui-camera.bat` - Windows version  
+- `docs/MIUI_CAMERA_DEBUG.md` - Debugging guide
+
+**Reason**: MIUI Camera from XagaForge requires specific debugging to diagnose issues (crashes, black screen, missing blobs). Need automated log collection and troubleshooting documentation.
+
+**What was changed**: Created comprehensive debug toolkit that:
+- Collects all relevant camera logs (logcat, dumpsys, properties, crashes)
+- Checks for MIUI Camera package installation
+- Verifies vendor blob presence (libmialgoengine.so, etc.)
+- Detects SEPolicy denials
+- Provides quick diagnosis of common issues
+- Includes detailed troubleshooting guide with solutions
+
+**Usage**:
+```bash
+# Windows (from PC with ADB):
+scripts\debug-miui-camera.bat
+
+# Linux/Mac:
+adb push scripts/debug-miui-camera.sh /sdcard/
+adb shell sh /sdcard/debug-miui-camera.sh
+adb pull /sdcard/miui_camera_logs_*
+```
+
+**Impact**: Faster diagnosis of MIUI Camera issues. Logs can be shared for debugging help.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
 
-The MIUI Camera package from XagaForge is built for specific framework versions. If camera crashes occur:
-1. Check if camera blob versions match framework expectations
-2. May need to update branch from `16.1` to match ROM version
+The MIUI Camera package from XagaForge is built for specific framework versions. Camera issues require detailed debugging.
+
+**Debug Script**: `scripts/debug-miui-camera.sh`
+
+Run on device:
+```bash
+adb shell
+sh /sdcard/debug-miui-camera.sh  # or push and run the script
+```
+
+**Common MIUI Camera Issues & Solutions**:
+
+1. **Camera app not installed**
+   - Check: `pm list packages | grep camera`
+   - Cause: MIUI Camera vendor not cloned or integrated
+   - Fix: Verify `vendor/xiaomi/miuicamera-xaga/` exists and `custom_xaga.mk` includes it
+
+2. **Camera crashes on open (libmialgo errors)**
+   - Check: `logcat -s MIArcSoft:*` for library loading errors
+   - Cause: Vendor blob ABI mismatch with Android 16 QPR1
+   - Fix: May need to update to newer MIUI Camera branch or patch blobs
+
+3. **Camera opens but shows black screen**
+   - Check: `dumpsys media.camera` for HAL errors
+   - Cause: Camera HAL compatibility or SEPolicy denials
+   - Fix: Check SEPolicy logs with `logcat -s audit:*`
+
+4. **Front camera not working**
+   - Check: Device tree camera configuration in `device/xiaomi/xaga/camera/`
+   - Cause: Wrong camera IDs or sensor configuration
+   - Fix: Verify `camera_config.xml` matches device hardware
+
+**Key Log Tags to Monitor**:
+```
+logcat -s CameraService:* Camera3-Device:* MIArcSoft:* miui.camera:*
+```
+
+**Files to Check**:
+- `vendor/xiaomi/miuicamera-xaga/Android.bp` - Build configuration
+- `device/xiaomi/xaga/custom_xaga.mk` - Integration check
+- `/vendor/lib*/libmialgoengine.so` - Vendor blob presence
 
 ### 🔄 SEPolicy Warnings
 
@@ -491,5 +561,8 @@ When fixing a build error, add an entry with:
 | `mLineageHardware` cannot find symbol | IMMS LineageOS touch features | See entry #15 |
 | `LineageHardwareManager` in DisplaySettings | Settings touch feature toggles | See entry #16 |
 | `build-manifest.xml` FileNotFoundError | Deleted repo project dirs | See entry #17 |
+| MIUI Camera crashes / black screen | Blob/framework mismatch | See MIUI Camera section in Pending Issues |
+| `libmialgoengine.so` not found | Missing camera vendor blobs | Verify `vendor/xiaomi/miuicamera-xaga/` exists |
+| Camera HAL errors | SEPolicy or HAL compatibility | Check `logcat -s audit:*` and `dumpsys media.camera` |
 
 

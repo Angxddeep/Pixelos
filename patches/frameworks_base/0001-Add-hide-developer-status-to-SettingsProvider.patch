@@ -1,0 +1,59 @@
+From: PixelOS <pixelos@rom>
+Date: Thu, 12 Feb 2026 00:00:00 +0000
+Subject: [PATCH] Add hide developer status support to SettingsProvider
+
+This patch intercepts Settings queries to hide developer status
+from selected apps. It patches both query() and call() methods
+to ensure comprehensive coverage.
+
+---
+ .../providers/settings/SettingsProvider.java        | 52 +++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/packages/SettingsProvider/src/com/android/providers/settings/SettingsProvider.java b/packages/SettingsProvider/src/com/android/providers/settings/SettingsProvider.java
+index 1234567..abcdefg 100644
+--- a/packages/SettingsProvider/src/com/android/providers/settings/SettingsProvider.java
++++ b/packages/SettingsProvider/src/com/android/providers/settings/SettingsProvider.java
+@@ -50,6 +50,8 @@ import android.util.Slog;
+ import android.util.SparseArray;
+ import android.view.accessibility.AccessibilityManager;
+ 
++import android.database.MatrixCursor;
++import com.android.internal.util.pixelos.HideDeveloperStatusUtils;
+ import com.android.internal.util.ArrayUtils;
+ import com.android.internal.util.Preconditions;
+ 
+@@ -200,6 +202,26 @@ public class SettingsProvider extends ContentProvider {
+     @Override
+     public Bundle call(String method, String name, Bundle args) {
+         final int requestingUserId = getRequestingUserId(args);
++        
++        // Hide developer status check for call() method
++        if (name != null && HideDeveloperStatusUtils.shouldHideDevStatus(getContext().getContentResolver(), 
++                getCallingPackage(), name)) {
++            Bundle result = new Bundle();
++            result.putString(Settings.NameValueTable.VALUE, "0");
++            return result;
++        }
++        
+         switch (method) {
+             case Settings.CALL_METHOD_GET_GLOBAL: {
+                 Setting setting = getGlobalSetting(name);
+@@ -280,6 +302,15 @@ public class SettingsProvider extends ContentProvider {
+         Arguments args = new Arguments(uri, where, whereArgs, true);
+         String[] normalizedProjection = normalizeProjection(projection);
+         
++        // Hide developer status check for query() method
++        if (args.name != null && HideDeveloperStatusUtils.shouldHideDevStatus(getContext().getContentResolver(), 
++                getCallingPackage(), args.name)) {
++            MatrixCursor cursor = new MatrixCursor(normalizedProjection != null ? 
++                    normalizedProjection : new String[]{Settings.NameValueTable.VALUE});
++            cursor.addRow(new Object[]{"0"});
++            return cursor;
++        }
++        
+         // If a legacy table that is gone, done.
+         if (REMOVED_LEGACY_TABLES.contains(args.table)) {
+             return null;
+-- 
+2.34.1
