@@ -117,6 +117,38 @@ After build completes:
 gcloud compute scp pixelos-builder:~/pixelos/out/target/product/xaga/*.zip ./
 ```
 
+## Fastboot Package
+
+The fastboot package is a self-contained ZIP with firmware, AOSP images, tools, and installation scripts — matching the AresOS reference layout.
+
+### Building
+
+```bash
+# After a successful m pixelos build:
+cd ~/pixelos
+bash ~/Pixelos/scripts/apply_fb_package_patch.sh   # generates fb_package.mk
+rm -f out/target/product/xaga/super.img             # force full super.img rebuild
+m fb_package
+```
+
+The output ZIP will be at `out/target/product/xaga/<date>-<time>.zip`.
+
+### Package Contents
+
+| Directory | Contents |
+|-----------|----------|
+| `images/` | All firmware (apusys, scp, lk, tee, etc.), boot, vbmeta, super.img, preloader |
+| `tools/` | fastboot binaries for Linux and Windows |
+| Root | `win_installation.bat`, `linux_installation.sh` |
+
+### Flashing
+
+1. Extract the ZIP
+2. Boot device into bootloader (`adb reboot bootloader` or Vol Down + Power)
+3. Run `win_installation.bat` (Windows) or `sudo bash linux_installation.sh` (Linux)
+
+> **⚠️ Warning**: Do NOT use `fastboot reboot recovery` on xaga — it can brick the device.
+
 ## Troubleshooting
 
 ### Out of Memory

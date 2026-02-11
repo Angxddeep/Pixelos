@@ -389,6 +389,52 @@ done
 
 ---
 
+### 24. ✅ Complete Fastboot Package with Firmware & Super Image
+
+**Location modified**:
+- `scripts/apply_fb_package_patch.sh` (the generated `fb_package.mk`)
+- `fastboot/win_installation.bat`
+- `fastboot/linux_installation.sh`
+
+**Reason**: The fastboot package only contained AOSP-built images (system, vendor, etc.) but was missing firmware partitions (apusys, scp, lk, tee, etc.), `super.img`, and `preloader_xaga.bin`. The installation scripts used a two-stage flash process (bootloader + fastbootd) but the device should use a single-stage bootloader flash matching AresOS's approach.
+
+**What was changed**:
+
+1. **`fb_package.mk` rewritten** to match AresOS reference package layout:
+   - Copies all firmware images directly from `$(PRODUCT_OUT)/` — no more `img_from_target_files_extended` extraction
+   - Auto-builds `super.img` via `build_super_image` if not present (passes target-files directory for full image with partition data)
+   - Falls back to `target-files/IMAGES/` and `target-files/RADIO/` subdirectories for images not in `$(PRODUCT_OUT)/` (e.g., `unsparse_super_empty.img`)
+   - Fixed `head -n -2` incompatibility on GCloud Ubuntu
+   - Removed non-existent `superimage` phony target dependency
+
+2. **Installation scripts reverted to single-stage bootloader flash**:
+   - Both `win_installation.bat` and `linux_installation.sh` now flash all partitions in bootloader mode only (no fastbootd)
+   - Flashes firmware + vbmeta + boot + super in one pass
+   - Warning comment about NOT using `fastboot reboot recovery` on xaga (bricking risk)
+
+3. **Package contents now match AresOS reference**:
+   ```
+   images/apusys.img, audio_dsp.img, boot.img, ccu.img, dpm.img, dtbo.img,
+   gpueb.img, gz.img, lk.img, mcf_ota.img, mcupm.img, md1img.img,
+   mvpu_algo.img, pi_img.img, preloader_xaga.bin, scp.img, spmfw.img,
+   sspm.img, super.img, tee.img, unsparse_super_empty.img, vbmeta.img,
+   vbmeta_system.img, vbmeta_vendor.img, vcp.img, vendor_boot.img
+   tools/linux/fastboot, tools/windows/fastboot.exe, ...
+   win_installation.bat, linux_installation.sh
+   ```
+
+**To rebuild**:
+```bash
+cd ~/pixelos
+rm -f out/target/product/xaga/super.img  # Force rebuild with actual data
+bash ~/Pixelos/scripts/apply_fb_package_patch.sh
+m fb_package
+```
+
+**Impact**: Fastboot package is now a complete, self-contained flashable package matching AresOS format. Users can flash the entire ROM + firmware from bootloader mode without needing fastbootd.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility

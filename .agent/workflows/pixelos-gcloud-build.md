@@ -91,6 +91,7 @@ The build script uses the new PixelOS build commands:
 3. **Vibrator HAL restored** - MediaTek uses `vendor.qti.hardware.vibrator` (reverted previous removal)
 4. **MIUI Camera integrated** - Cloned from XagaForge and added to device tree
 5. **aosp_xaga.mk created** - PixelOS product makefile (device trees are for LineageOS)
+6. **Fastboot package includes firmware** - `fb_package.mk` copies all firmware images + auto-builds `super.img`, matching AresOS reference layout. Installation scripts use single-stage bootloader flash (no fastbootd).
 
 ## Troubleshooting Reference
 
