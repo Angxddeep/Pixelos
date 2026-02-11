@@ -77,9 +77,15 @@ fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/images.zip
 	$(hide) unzip -q $(FB_GEN_DIR)/images.zip -d $(FB_GEN_DIR)
 	$(hide) rm $(FB_GEN_DIR)/images.zip
-	$(hide) echo "Copying fastboot tools..."
-	$(hide) cp -r $(TOP)/fastboot/* $(FB_GEN_DIR)/
-	$(hide) chmod +x $(FB_GEN_DIR)/linux_installation.sh
+	$(hide) if [ -d "$(TOP)/fastboot" ]; then \
+		echo "Copying fastboot tools..."; \
+		cp -r $(TOP)/fastboot/. $(FB_GEN_DIR)/; \
+		if [ -f "$(FB_GEN_DIR)/linux_installation.sh" ]; then \
+			chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
+		fi; \
+	else \
+		echo "WARNING: fastboot directory not found at $(TOP)/fastboot. Skipping tools copy."; \
+	fi
 	$(hide) echo "Zipping package..."
 	$(hide) cd $(FB_GEN_DIR) && zip -r $(PIXELOS_FB_PACKAGE) .
 	$(hide) ln -sf $(notdir $(PIXELOS_FB_PACKAGE)) $(PRODUCT_OUT)/latest-fastboot.zip
