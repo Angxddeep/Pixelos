@@ -129,6 +129,16 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     fi
 
     print_step "2/6 - Syncing ROM source (this takes a while)..."
+    
+    # Clean up dirty repos that cause "unsupported checkout state"
+    print_info "Cleaning up potential dirty repositories..."
+    rm -rf hardware/qcom/sdm845/display 2>/dev/null || true
+    rm -rf hardware/qcom/sdm845/gps 2>/dev/null || true
+    rm -rf hardware/qcom/sm7250/display 2>/dev/null || true
+    rm -rf hardware/qcom/sm7250/gps 2>/dev/null || true
+    rm -rf hardware/qcom/sm8150/display 2>/dev/null || true
+    rm -rf hardware/qcom/sm8150/gps 2>/dev/null || true
+    rm -rf packages/apps/ParanoidSense 2>/dev/null || true
     repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune --force-sync -j"$JOBS" || \
     repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune --force-sync -j4
 

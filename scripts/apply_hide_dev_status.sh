@@ -526,7 +526,18 @@ main() {
         esac
     done
     
-    cd "$TOP"
+    # Default to current directory if TOP not set
+    if [ -z "$TOP" ]; then
+        TOP="$PWD"
+    fi
+    
+    # Ensure TOP is a valid directory
+    if [ ! -d "$TOP" ]; then
+        log_error "Directory not found: $TOP"
+        exit 1
+    fi
+
+    cd -- "$TOP"
     
     if [ "$cleanup" = true ]; then
         cleanup_backups
