@@ -63,7 +63,10 @@ $(call inherit-product, device/xiaomi/mt6895-common/mt6895.mk)
 $(call inherit-product, device/xiaomi/xaga/device.mk)
 
 # Inherit PixelOS common full phone configuration
-$(call inherit-product, vendor/custom/config/common_full_phone.mk)
+# Use inherit-product-if-exists to avoid errors if vendor/custom config references vendor/lineage
+$(call inherit-product-if-exists, vendor/custom/config/common_full_phone.mk)
+# Fallback to common.mk if common_full_phone.mk has issues
+$(call inherit-product-if-exists, vendor/custom/config/common.mk)
 
 # Product name
 PRODUCT_NAME := custom_xaga

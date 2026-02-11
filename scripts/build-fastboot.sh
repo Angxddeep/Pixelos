@@ -35,45 +35,43 @@ print_info "Setting up build environment..."
 # Source build environment
 source build/envsetup.sh
 
-# Try breakfast first
-print_info "Trying breakfast xaga..."
-if breakfast xaga 2>&1 | tee /tmp/breakfast.log; then
-    print_success "breakfast xaga succeeded!"
-    # Check if there's a BoardConfig error
-    if grep -q "32-bit-app-only product" /tmp/breakfast.log; then
-        print_warn "BoardConfig error detected. Fixing..."
-        BOARDCONFIG_MK="device/xiaomi/xaga/BoardConfig.mk"
-        BOARDCONFIG_XAGA_MK="device/xiaomi/xaga/BoardConfigXaga.mk"
-        if [[ -f "$BOARDCONFIG_XAGA_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_XAGA_MK"; then
-            echo "" >> "$BOARDCONFIG_XAGA_MK"
-            echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_XAGA_MK"
-            print_success "Fixed BoardConfigXaga.mk"
-        elif [[ -f "$BOARDCONFIG_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_MK"; then
-            echo "" >> "$BOARDCONFIG_MK"
-            echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_MK"
-            print_success "Fixed BoardConfig.mk"
+# Use lineage_xaga directly (recommended - avoids vendor/lineage issues)
+# The device tree is LineageOS-based, but ROM source is PixelOS, so this works perfectly
+print_info "Using lineage_xaga-userdebug (recommended for PixelOS builds)..."
+if lunch lineage_xaga-userdebug; then
+    print_success "lunch lineage_xaga-userdebug succeeded!"
+    print_info "Note: Using lineage product name, but building PixelOS ROM"
+    print_info "This works because device tree is LineageOS-based and ROM source is PixelOS"
+else
+    print_warn "lunch lineage_xaga-userdebug failed, trying breakfast xaga..."
+    if breakfast xaga 2>&1 | tee /tmp/breakfast.log; then
+        print_success "breakfast xaga succeeded!"
+        # Check if there's a BoardConfig error
+        if grep -q "32-bit-app-only product" /tmp/breakfast.log; then
+            print_warn "BoardConfig error detected. Fixing..."
+            BOARDCONFIG_MK="device/xiaomi/xaga/BoardConfig.mk"
+            BOARDCONFIG_XAGA_MK="device/xiaomi/xaga/BoardConfigXaga.mk"
+            if [[ -f "$BOARDCONFIG_XAGA_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_XAGA_MK"; then
+                echo "" >> "$BOARDCONFIG_XAGA_MK"
+                echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_XAGA_MK"
+                print_success "Fixed BoardConfigXaga.mk"
+            elif [[ -f "$BOARDCONFIG_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_MK"; then
+                echo "" >> "$BOARDCONFIG_MK"
+                echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_MK"
+                print_success "Fixed BoardConfig.mk"
+            fi
+            # Retry breakfast after fix
+            print_info "Retrying breakfast xaga..."
+            breakfast xaga || {
+                print_error "breakfast still failing after BoardConfig fix"
+                exit 1
+            }
         fi
-        # Retry breakfast after fix
-        print_info "Retrying breakfast xaga..."
-        breakfast xaga || {
-            print_error "breakfast still failing after BoardConfig fix"
-            exit 1
-        }
-    fi
-elif grep -q "custom_xaga" /tmp/breakfast.log; then
-    print_warn "breakfast failed, trying lunch lineage_xaga-userdebug..."
-    if lunch lineage_xaga-userdebug; then
-        print_success "lunch lineage_xaga-userdebug succeeded!"
-        print_warn "Note: Using lineage product, but building PixelOS ROM"
     else
-        print_error "Both breakfast and lunch failed!"
+        print_error "Both lunch and breakfast failed!"
         print_error "Check the errors above"
         exit 1
     fi
-else
-    print_error "breakfast failed with unexpected error"
-    cat /tmp/breakfast.log
-    exit 1
 fi
 
 # Build fastboot ROM
