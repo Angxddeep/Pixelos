@@ -92,6 +92,9 @@ cat > vendor/custom/build/tasks/fb_package.mk << 'EOFMK'
 PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(shell date +%Y%m%d-%H%M).zip
 FB_GEN_DIR := $(PRODUCT_OUT)/fastboot_gen
 
+# Path to fastboot tools (injected by apply_fb_package_patch.sh)
+PIXELOS_FASTBOOT_DIR := __FASTBOOT_DIR__
+
 .PHONY: fb_package
 fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(call pretty,"Package fastboot: $(PIXELOS_FB_PACKAGE)")
@@ -101,14 +104,22 @@ fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/images.zip
 	$(hide) unzip -q $(FB_GEN_DIR)/images.zip -d $(FB_GEN_DIR)
 	$(hide) rm $(FB_GEN_DIR)/images.zip
-	$(hide) if [ -d "$(TOP)/fastboot" ]; then \
-		echo "Copying fastboot tools..."; \
-		cp -r $(TOP)/fastboot/. $(FB_GEN_DIR)/; \
-		if [ -f "$(FB_GEN_DIR)/linux_installation.sh" ]; then \
-			chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
-		fi; \
+	$(hide) if [ -d "$(PIXELOS_FASTBOOT_DIR)" ]; then \
+		echo "Copying fastboot tools from $(PIXELOS_FASTBOOT_DIR)..."; \
+		cp -r $(PIXELOS_FASTBOOT_DIR)/tools $(FB_GEN_DIR)/tools; \
+		cp $(PIXELOS_FASTBOOT_DIR)/linux_installation.sh $(FB_GEN_DIR)/linux_installation.sh; \
+		cp $(PIXELOS_FASTBOOT_DIR)/win_installation.bat $(FB_GEN_DIR)/win_installation.bat; \
+		chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
+	elif [ -d "$(TOP)/fastboot" ]; then \
+		echo "Copying fastboot tools from $(TOP)/fastboot..."; \
+		cp -r $(TOP)/fastboot/tools $(FB_GEN_DIR)/tools; \
+		cp $(TOP)/fastboot/linux_installation.sh $(FB_GEN_DIR)/linux_installation.sh; \
+		cp $(TOP)/fastboot/win_installation.bat $(FB_GEN_DIR)/win_installation.bat; \
+		chmod +x $(FB_GEN_DIR)/linux_installation.sh; \
 	else \
-		echo "WARNING: fastboot directory not found at $(TOP)/fastboot. Skipping tools copy."; \
+		echo "ERROR: fastboot tools not found at $(PIXELOS_FASTBOOT_DIR) or $(TOP)/fastboot!"; \
+		echo "Re-run: bash scripts/apply_fb_package_patch.sh"; \
+		exit 1; \
 	fi
 	$(hide) echo "Zipping package..."
 	$(hide) cd $(FB_GEN_DIR) && zip -r $(abspath $(PIXELOS_FB_PACKAGE)) .
@@ -117,7 +128,10 @@ fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	@echo "Package Complete: $(PIXELOS_FB_PACKAGE)" >&2
 EOFMK
 
-print_success "Created fb_package.mk"
+# Inject the actual absolute path of the fastboot tools directory
+sed -i "s|__FASTBOOT_DIR__|${FASTBOOT_SRC}|g" vendor/custom/build/tasks/fb_package.mk
+
+print_success "Created fb_package.mk (fastboot tools path: $FASTBOOT_SRC)"
 
 # =============================================================================
 # 3. Create Android.bp for img_from_target_files_extended

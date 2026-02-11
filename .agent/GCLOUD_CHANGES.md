@@ -373,6 +373,22 @@ done
 
 ---
 
+
+### 23. ✅ Fixed Fastboot Package Missing Tools and Scripts
+
+**Location modified**: `scripts/apply_fb_package_patch.sh` (the generated `fb_package.mk`)
+
+**Reason**: The `m fb_package` output ZIP only contained `images/` and `android-info.txt`. The `tools/` directory, `linux_installation.sh`, and `win_installation.bat` were missing because `fb_package.mk` referenced `$(TOP)/fastboot` which didn't exist on the build VM.
+
+**What was changed**:
+- Inject the **absolute path** of the repo's `fastboot/` directory into `fb_package.mk` at patch time (using `sed` to replace `__FASTBOOT_DIR__`)
+- Explicitly copy `tools/`, `linux_installation.sh`, `win_installation.bat` instead of `cp -r fastboot/.`
+- Added fallback to `$(TOP)/fastboot` and a **build error** (instead of silent skip) if both paths are missing
+
+**Impact**: Re-run `bash ~/Pixelos/scripts/apply_fb_package_patch.sh` on the VM, then `m fb_package` to rebuild with all tools included.
+
+---
+
 ## Pending Issues / Watch List
 
 ### 🔄 MIUI Camera Compatibility
