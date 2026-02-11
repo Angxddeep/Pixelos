@@ -164,22 +164,34 @@ if [[ -f "$PRELOADER_PATH" ]]; then
     fi
 fi
 
-# Verify BoardConfig exists
+# Fix BoardConfig - add TARGET_SUPPORTS_64_BIT_APPS if missing
 if [[ -f "$BOARDCONFIG_XAGA_MK" ]]; then
     print_info "Found BoardConfigXaga.mk"
     if ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_XAGA_MK"; then
         print_warn "BoardConfigXaga.mk doesn't have TARGET_SUPPORTS_64_BIT_APPS set"
-        print_warn "This may cause '32-bit-app-only product on 64-bit device' errors"
+        print_info "Adding TARGET_SUPPORTS_64_BIT_APPS := true to BoardConfigXaga.mk..."
+        echo "" >> "$BOARDCONFIG_XAGA_MK"
+        echo "# Fix for 64-bit device (xaga is 64-bit)" >> "$BOARDCONFIG_XAGA_MK"
+        echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_XAGA_MK"
+        print_success "Added TARGET_SUPPORTS_64_BIT_APPS to BoardConfigXaga.mk"
+    else
+        print_info "BoardConfigXaga.mk already has TARGET_SUPPORTS_64_BIT_APPS set"
     fi
 elif [[ -f "$BOARDCONFIG_MK" ]]; then
     print_info "Found BoardConfig.mk"
     if ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_MK"; then
         print_warn "BoardConfig.mk doesn't have TARGET_SUPPORTS_64_BIT_APPS set"
-        print_warn "This may cause '32-bit-app-only product on 64-bit device' errors"
+        print_info "Adding TARGET_SUPPORTS_64_BIT_APPS := true to BoardConfig.mk..."
+        echo "" >> "$BOARDCONFIG_MK"
+        echo "# Fix for 64-bit device (xaga is 64-bit)" >> "$BOARDCONFIG_MK"
+        echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_MK"
+        print_success "Added TARGET_SUPPORTS_64_BIT_APPS to BoardConfig.mk"
+    else
+        print_info "BoardConfig.mk already has TARGET_SUPPORTS_64_BIT_APPS set"
     fi
 else
     print_error "No BoardConfig found! The device tree may not be synced properly."
-    print_error "Run: repo sync"
+    print_error "Run: repo sync device/xiaomi/xaga"
     exit 1
 fi
 

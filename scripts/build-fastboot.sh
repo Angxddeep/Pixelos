@@ -32,6 +32,27 @@ source build/envsetup.sh
 print_info "Trying breakfast xaga..."
 if breakfast xaga 2>&1 | tee /tmp/breakfast.log; then
     print_success "breakfast xaga succeeded!"
+    # Check if there's a BoardConfig error
+    if grep -q "32-bit-app-only product" /tmp/breakfast.log; then
+        print_warn "BoardConfig error detected. Fixing..."
+        BOARDCONFIG_MK="device/xiaomi/xaga/BoardConfig.mk"
+        BOARDCONFIG_XAGA_MK="device/xiaomi/xaga/BoardConfigXaga.mk"
+        if [[ -f "$BOARDCONFIG_XAGA_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_XAGA_MK"; then
+            echo "" >> "$BOARDCONFIG_XAGA_MK"
+            echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_XAGA_MK"
+            print_success "Fixed BoardConfigXaga.mk"
+        elif [[ -f "$BOARDCONFIG_MK" ]] && ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_MK"; then
+            echo "" >> "$BOARDCONFIG_MK"
+            echo "TARGET_SUPPORTS_64_BIT_APPS := true" >> "$BOARDCONFIG_MK"
+            print_success "Fixed BoardConfig.mk"
+        fi
+        # Retry breakfast after fix
+        print_info "Retrying breakfast xaga..."
+        breakfast xaga || {
+            print_error "breakfast still failing after BoardConfig fix"
+            exit 1
+        }
+    fi
 elif grep -q "custom_xaga" /tmp/breakfast.log; then
     print_warn "breakfast failed, trying lunch lineage_xaga-userdebug..."
     if lunch lineage_xaga-userdebug; then
