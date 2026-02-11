@@ -605,21 +605,38 @@ source build/envsetup.sh
 # Export TARGET_RELEASE for Android 14/15+ builds (just in case)
 # export TARGET_RELEASE=trunk_staging
 
-# Unset potential stale variables
+# Setup device - Smart detection
+print_info "Detecting valid product from AndroidProducts.mk..."
+
+PRODUCTS_MK="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
+if [[ -f "$PRODUCTS_MK" ]]; then
+    # Extract product name (e.g., pixelos_xaga, lineage_xaga)
+    DETECTED_PRODUCT=$(grep -oE "(pixelos|lineage|aosp)_${DEVICE_CODENAME}" "$PRODUCTS_MK" | head -n 1)
+    
+    if [[ -z "$DETECTED_PRODUCT" ]]; then
+        # Fallback to defaults
+        DETECTED_PRODUCT="lineage_${DEVICE_CODENAME}"
+        print_warn "Could not auto-detect product name, defaulting to $DETECTED_PRODUCT"
+    else
+        print_info "Auto-detected product: $DETECTED_PRODUCT"
+    fi
+else
+    print_error "AndroidProducts.mk not found at $PRODUCTS_MK"
+    exit 1
+fi
+
+# Unset stale variables that might force custom_xaga
 unset TARGET_PRODUCT
 unset TARGET_BUILD_VARIANT
 unset TARGET_BUILD_TYPE
 
-# Setup device with breakfast (user confirmed preference)
-print_info "Setting up device with breakfast..."
-breakfast "$DEVICE_CODENAME"
-
-# CRITICAL: Verify breakfast actually worked
-# Breakfast often returns success code 0 even if it fell back to generic AOSP
-if [[ "$TARGET_PRODUCT" == "aosp_arm64" || "$TARGET_PRODUCT" == "aosp_x86" || "$TARGET_PRODUCT" == *"generic"* ]]; then
-    print_error "Breakfast failed to set up a device-specific product."
-    print_error "Current target is generic: $TARGET_PRODUCT"
-    print_error "Stopping to prevent unwanted full rebuild."
+print_info "Lunching $DETECTED_PRODUCT-${BUILD_TYPE}..."
+if lunch "${DETECTED_PRODUCT}-${BUILD_TYPE}"; then
+    print_success "Lunch successful!"
+elif lunch "${DETECTED_PRODUCT}-trunk_staging-${BUILD_TYPE}"; then
+    print_success "Lunch successful (trunk_staging)!"
+else
+    print_error "Lunch failed for $DETECTED_PRODUCT"
     exit 1
 fi
 
