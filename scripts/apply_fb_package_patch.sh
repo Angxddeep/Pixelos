@@ -104,8 +104,12 @@ FB_PACKAGE_IMAGES := \
     vendor_boot.img super.img unsparse_super_empty.img
 
 .PHONY: fb_package
-fb_package: $(BUILT_TARGET_FILES_PACKAGE) superimage
+fb_package: $(BUILT_TARGET_FILES_PACKAGE)
 	$(call pretty,"Package fastboot: $(PIXELOS_FB_PACKAGE)")
+	$(hide) if [ ! -f "$(PRODUCT_OUT)/super.img" ]; then \
+		echo "=== Building super.img ==="; \
+		$(HOST_OUT_EXECUTABLES)/build_super_image -v $(PRODUCT_OUT)/obj/PACKAGING/target_files_intermediates/$(TARGET_PRODUCT)-target_files/META/misc_info.txt $(PRODUCT_OUT)/super.img; \
+	fi
 	$(hide) rm -rf $(FB_GEN_DIR)
 	$(hide) mkdir -p $(FB_GEN_DIR)/images
 	@echo "=== Collecting images from build output ==="
