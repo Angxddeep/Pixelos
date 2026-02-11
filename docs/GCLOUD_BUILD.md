@@ -1,6 +1,6 @@
 # Building PixelOS on Google Cloud
 
-This guide covers setting up a Google Cloud Compute Engine VM for building PixelOS.
+This guide covers setting up a Google Cloud Compute Engine VM for building PixelOS using the **structured workflow** (config + stages).
 
 ## Prerequisites
 
@@ -11,24 +11,45 @@ This guide covers setting up a Google Cloud Compute Engine VM for building Pixel
 ## Quick Start
 
 ```bash
-# 1. Clone this repo
+# 1. Clone this repo (local machine)
 git clone https://github.com/YOUR_USER/Pixelos.git
 cd Pixelos
 
-# 2. Create VM (requires gcloud CLI)
+# 2. Create VM (local; requires gcloud CLI)
 bash scripts/gcloud-setup.sh --project=YOUR_PROJECT_ID --spot
 
 # 3. SSH into VM
 gcloud compute ssh pixelos-builder --zone=us-central1-a
 
-# 4. On the VM: Clone repo and setup
+# 4. On the VM: clone repo and one-time env setup
 git clone https://github.com/YOUR_USER/Pixelos.git
 cd Pixelos
 bash scripts/env-setup.sh
 
-# 5. Start build
+# 5. Build (syncs sources then builds; see config/build.conf for options)
 bash scripts/build-pixelos.sh
 ```
+
+## Full clean and recache
+
+To **fully clean your GCloud setup and recache everything** (e.g. after changing ROM branch or cleaning the project):
+
+**Option A — Delete VM and start over (run locally):**
+```bash
+bash scripts/gcloud-clean-recache.sh --project=YOUR_PROJECT_ID --delete
+# Then follow the printed steps: create VM, SSH, clone, env-setup, build.
+```
+
+**Option B — On the VM: wipe source + build, then re-sync and build:**
+```bash
+export BUILD_DIR="${BUILD_DIR:-$HOME/pixelos}"
+rm -rf "$BUILD_DIR/.repo" "$BUILD_DIR/out"
+# Optional: clear ccache
+ccache -C
+cd ~/Pixelos
+bash scripts/build-pixelos.sh
+```
+This keeps the VM and env-setup; only the PixelOS tree and build output are recreated.
 
 ## VM Specifications
 
@@ -78,21 +99,24 @@ Installs Android build dependencies on the VM.
 bash scripts/env-setup.sh
 ```
 
-### build-pixelos.sh
+### build-pixelos.sh (structured: config + stages)
 
-Builds PixelOS for Xaga device.
+Builds PixelOS for Xaga. Single source of truth: `config/build.conf`. Stages live in `scripts/stages/`.
 
 ```bash
-# Full build
+# Full sync + build
 bash scripts/build-pixelos.sh
 
 # Sync sources only (no build)
 bash scripts/build-pixelos.sh --sync-only
 
-# Clean build
+# Build only (sources already synced)
+bash scripts/build-pixelos.sh --build-only
+
+# Clean out/ then build
 bash scripts/build-pixelos.sh --clean
 
-# Release build
+# Release (user) build
 bash scripts/build-pixelos.sh --user
 ```
 
@@ -123,38 +147,24 @@ The fastboot package is a self-contained ZIP with firmware, AOSP images, tools, 
 
 ### Building
 
+The fastboot package is **automatically generated** after a successful build via `scripts/build-pixelos.sh`. Stage 06 calls `scripts/package_fastboot.sh` after `make target-files-package`.
+
+**Manual build (if needed):**
 ```bash
-# First-time setup: Create custom_xaga.mk (required for breakfast xaga)
 cd ~/pixelos
-
-# 1. Make sure device tree is synced
-repo sync device/xiaomi/xaga device/xiaomi/mt6895-common
-
-# 2. Run setup script to create custom_xaga.mk
-bash ~/Pixelos/scripts/setup_custom_xaga.sh
-
-# 3. Apply fastboot package patch (creates fb_package.mk with pixelos_fb target)
-bash ~/Pixelos/scripts/apply_fb_package_patch.sh
-
-# 4. Build fastboot ROM (automated - handles lunch/breakfast):
-bash ~/Pixelos/scripts/build-fastboot.sh
-
-# OR manually:
-# source build/envsetup.sh
-# breakfast xaga  # or: lunch lineage_xaga-userdebug if breakfast fails
-# m pixelos_fb
+source build/envsetup.sh
+lunch custom_xaga-userdebug  # or lineage_xaga-userdebug
+make target-files-package -j$(nproc)
+bash ~/Pixelos/scripts/package_fastboot.sh
 ```
 
-**Alternative:** If you want to build recovery ROM first, then fastboot package:
+**Optional:** To use the makefile-based fastboot package (requires patch):
 ```bash
-m pixelos fb_package  # This WILL build recovery ROM first
+bash ~/Pixelos/scripts/apply_fb_package_patch.sh
+# Then: m pixelos_fb  (fastboot only) or m pixelos fb_package (recovery + fastboot)
 ```
 
-**Note:** 
-- `m pixelos_fb` builds ONLY fastboot ROM (no recovery ROM). Use this if you only need fastboot package.
-- If `breakfast xaga` fails with "Cannot locate config makefile for product custom_xaga", run `bash ~/Pixelos/scripts/setup_custom_xaga.sh` first.
-
-The output ZIP will be at `out/target/product/xaga/<date>-<time>.zip`.
+The output ZIP will be at `out/target/product/xaga/PixelOS_xaga_Fastboot_YYYYMMDD-HHMM.zip`.
 
 ### Package Contents
 
@@ -196,9 +206,25 @@ gcloud compute ssh pixelos-builder --zone=us-central1-a
 cd ~/pixelos && bash ../Pixelos/scripts/build-pixelos.sh --build-only
 ```
 
+## Repository structure (structured build)
+
+| Path | Purpose |
+|------|---------|
+| `config/build.conf` | ROM branch, device, repos, build dir (single source of truth) |
+| `scripts/lib/common.sh` | Shared helpers and config loading |
+| `scripts/stages/01-sync-repo.sh` | repo init + sync |
+| `scripts/stages/02-device-trees.sh` | Device/vendor/kernel/MediaTek/Lineage trees |
+| `scripts/stages/03-miui-preloader.sh` | MIUI Camera + preloader |
+| `scripts/stages/04-patches.sh` | wpa_supplicant_8 patches |
+| `scripts/stages/05-post-sync-fixes.sh` | Qualcomm/livedisplay removal |
+| `scripts/stages/06-build.sh` | Pre-build fixes, lunch, make, package_fastboot |
+| `scripts/gcloud-clean-recache.sh` | Clean VM + full recache steps |
+
 ## Cleanup
 
 **Delete VM to stop billing:**
 ```bash
 bash scripts/gcloud-setup.sh --project=YOUR_PROJECT --delete
+# Or:
+bash scripts/gcloud-clean-recache.sh --project=YOUR_PROJECT --delete
 ```
