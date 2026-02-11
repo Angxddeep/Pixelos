@@ -23,6 +23,13 @@ if [[ ! -d "build" ]] || [[ ! -d "vendor/custom" ]]; then
     exit 1
 fi
 
+# Fix vendor/lineage issues if they exist
+if [[ -d "vendor/lineage" ]]; then
+    print_warn "Found vendor/lineage directory, removing..."
+    rm -rf vendor/lineage
+    print_success "Removed vendor/lineage"
+fi
+
 print_info "Setting up build environment..."
 
 # Source build environment
