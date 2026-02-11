@@ -610,34 +610,15 @@ unset TARGET_PRODUCT
 unset TARGET_BUILD_VARIANT
 unset TARGET_BUILD_TYPE
 
-# Setup device - explicit lunch is safer than breakfast
-print_info "Setting up device..."
+# Setup device with breakfast (user confirmed preference)
+print_info "Setting up device with breakfast..."
+breakfast "$DEVICE_CODENAME"
 
-# Check likely product names
-PRODUCTS=("lineage_${DEVICE_CODENAME}" "pixelos_${DEVICE_CODENAME}" "aosp_${DEVICE_CODENAME}" "${DEVICE_CODENAME}")
-LUNCH_SUCCESS=false
-
-for prod in "${PRODUCTS[@]}"; do
-    print_info "Trying to lunch ${prod}-${BUILD_TYPE}..."
-    if lunch "${prod}-${BUILD_TYPE}"; then
-        LUNCH_SUCCESS=true
-        break
-    elif lunch "${prod}-trunk_staging-${BUILD_TYPE}"; then # Try with release config
-         LUNCH_SUCCESS=true
-         break
-    fi
-done
-
-if [ "$LUNCH_SUCCESS" = false ]; then
-    print_error "Failed to lunch any valid product for $DEVICE_CODENAME"
-    print_info "Available choices:"
-    print_lunch_menu 2>/dev/null || true
-    exit 1
-fi
-
-# Verify we aren't building generic AOSP
+# CRITICAL: Verify breakfast actually worked
+# Breakfast often returns success code 0 even if it fell back to generic AOSP
 if [[ "$TARGET_PRODUCT" == "aosp_arm64" || "$TARGET_PRODUCT" == "aosp_x86" || "$TARGET_PRODUCT" == *"generic"* ]]; then
-    print_error "Build configured for generic target ($TARGET_PRODUCT) instead of device specific."
+    print_error "Breakfast failed to set up a device-specific product."
+    print_error "Current target is generic: $TARGET_PRODUCT"
     print_error "Stopping to prevent unwanted full rebuild."
     exit 1
 fi
