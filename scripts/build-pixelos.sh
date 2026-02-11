@@ -5,6 +5,7 @@
 #
 
 set -e
+set -o pipefail  # Fail if any command in a pipe fails (e.g., make ... | tee ...)
 
 # Colors
 RED='\033[0;31m'
@@ -727,6 +728,14 @@ export DEVICE_CODENAME
 
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
+
+# Check if PRODUCT_OUT is set
+if [[ -z "$PRODUCT_OUT" ]]; then
+    print_warn "PRODUCT_OUT is not set. Attempting to derive it..."
+    PRODUCT_OUT="$BUILD_DIR/out/target/product/$DEVICE_CODENAME"
+    export PRODUCT_OUT
+fi
+print_info "Build artifacts will be in: $PRODUCT_OUT"
 
 # Build target-files-package only (skip recovery ROM, build fastboot images only)
 # This builds partition images without creating the recovery-flashable OTA ZIP

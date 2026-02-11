@@ -29,8 +29,21 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Check if variables are set
 if [[ -z "$PRODUCT_OUT" ]]; then
-    print_error "PRODUCT_OUT not set. Run 'lunch' first."
-    exit 1
+    print_warn "PRODUCT_OUT not set. Attempting to derive..."
+    # Try to find it relative to current directory if we are at root
+    if [[ -f "build/envsetup.sh" ]]; then
+        # We are likely at repo root
+        if [[ -n "$DEVICE_CODENAME" ]]; then
+             PRODUCT_OUT="$(pwd)/out/target/product/$DEVICE_CODENAME"
+             print_info "Derived PRODUCT_OUT: $PRODUCT_OUT"
+        else
+             print_error "DEVICE_CODENAME not set, cannot derive PRODUCT_OUT."
+             exit 1
+        fi
+    else
+        print_error "PRODUCT_OUT not set and not at repo root."
+        exit 1
+    fi
 fi
 
 if [[ -z "$HOST_OUT_EXECUTABLES" ]]; then
