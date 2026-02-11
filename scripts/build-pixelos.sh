@@ -234,8 +234,8 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     if [[ ! -d "hardware/lineage/interfaces" ]]; then
         print_info "Cloning LineageOS hardware interfaces..."
         mkdir -p hardware/lineage
-        git clone --depth=1 -b lineage-22.1 \
-            https://github.com/AresOS-UDC/android_hardware_lineage_interfaces.git \
+        git clone --depth=1 -b lineage-21.0 \
+            https://github.com/LineageOS/android_hardware_lineage_interfaces.git \
             hardware/lineage/interfaces
     fi
 
@@ -383,9 +383,10 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     print_info "Fixing livedisplay module dependencies in frameworks/base..."
     if [[ -f "frameworks/base/Android.bp" ]]; then
         # Replace old HIDL naming with new AIDL naming
-        sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
-        sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
-        print_success "Livedisplay dependencies fixed!"
+        # Custom patches for LiveDisplay could go here if needed
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        print_success "LiveDisplay interfaces should be correct with lineage-21.0 branch"
     else
         print_warn "frameworks/base/Android.bp not found, skipping livedisplay fix"
     fi
@@ -418,8 +419,8 @@ if [[ -f "frameworks/base/Android.bp" ]]; then
     # Remove any livedisplay-related static_libs entries
     # This handles V2.0, V2.1, V2, V1 etc
     if grep -q "vendor\.lineage\.livedisplay" frameworks/base/Android.bp 2>/dev/null; then
-        sed -i '/vendor\.lineage\.livedisplay/d' frameworks/base/Android.bp
-        print_success "Livedisplay dependencies removed from frameworks/base!"
+        # sed -i '/vendor\.lineage\.livedisplay/d' frameworks/base/Android.bp
+        print_info "Keeping livedisplay dependencies in frameworks/base (attempting to restore support)"
     else
         print_info "No livedisplay dependencies found in frameworks/base"
     fi
@@ -440,9 +441,9 @@ fi
 
 # Remove incompatible livedisplay HIDL implementations (they use @2.0 but we have AIDL)
 print_info "Removing incompatible livedisplay HIDL services..."
-rm -rf hardware/lineage/livedisplay/legacymm 2>/dev/null || true
-rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
-rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
+# rm -rf hardware/lineage/livedisplay/legacymm 2>/dev/null || true
+# rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
+# rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
 
 # =============================================================================
 # Remove ParanoidSense (conflicts with Xiaomi's megvii library)
@@ -479,13 +480,13 @@ print_info "Removing Qualcomm vibrator references from device tree..."
 print_info "Removing LineageOS services from frameworks/base..."
 
 # Remove LineageOS internal hardware classes
-rm -rf frameworks/base/core/java/com/android/internal/lineage/hardware/ 2>/dev/null || true
+# rm -rf frameworks/base/core/java/com/android/internal/lineage/hardware/ 2>/dev/null || true
 
 # Remove ParanoidSense face services directory
 rm -rf frameworks/base/services/core/java/com/android/server/biometrics/sensors/face/sense/ 2>/dev/null || true
 
 # Remove LineageOS display services
-rm -rf frameworks/base/services/core/java/com/android/server/lineage/ 2>/dev/null || true
+# rm -rf frameworks/base/services/core/java/com/android/server/lineage/ 2>/dev/null || true
 
 # =============================================================================
 # Fix ParanoidSense biometrics references in FaceService and AuthService
@@ -568,7 +569,7 @@ if os.path.exists(imms):
     print(f"Fixed {imms}")
 EOFPY
 
-python3 /tmp/fix_imms.py 2>/dev/null || true
+# python3 /tmp/fix_imms.py 2>/dev/null || true
 
 # =============================================================================
 # Optional: Apply fastboot package patch
