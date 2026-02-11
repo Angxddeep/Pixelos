@@ -86,7 +86,9 @@ mkdir -p vendor/custom/build/tasks
 cat > vendor/custom/build/tasks/fb_package.mk << 'EOFMK'
 # Fastboot package build target
 # Adapted from AresOS for PixelOS
-# Usage: m fb_package (after a successful m pixelos build)
+# Usage: 
+#   m fb_package (after target-files-package is built)
+#   m pixelos_fb (builds target-files-package + fb_package, NO recovery ROM)
 
 # Construct the output filename using the build number
 PIXELOS_FB_PACKAGE := $(PRODUCT_OUT)/$(shell date +%Y%m%d-%H%M).zip
@@ -102,6 +104,12 @@ FB_PACKAGE_IMAGES := \
     mvpu_algo.img pi_img.img scp.img spmfw.img sspm.img tee.img \
     vcp.img vbmeta.img vbmeta_system.img vbmeta_vendor.img \
     vendor_boot.img super.img unsparse_super_empty.img
+
+# Convenience target: Build fastboot ROM only (no recovery ROM)
+# This builds target-files-package and fb_package without building otapackage
+.PHONY: pixelos_fb
+pixelos_fb: target-files-package fb_package
+	@echo "Fastboot ROM build complete (no recovery ROM built)"
 
 .PHONY: fb_package
 fb_package: $(BUILT_TARGET_FILES_PACKAGE)
@@ -596,12 +604,15 @@ print_success "==========================================="
 print_success "Fastboot package patch applied!"
 print_success "==========================================="
 echo ""
-print_info "To build a fastboot package after a successful ROM build:"
-echo "  m fb_package"
+print_info "To build a fastboot package (NO recovery ROM):"
+echo "  m pixelos_fb"
+echo ""
+print_info "Or build target-files-package first, then fb_package:"
+echo "  m target-files-package fb_package"
 echo ""
 print_info "The output will be in:"
-echo "  out/target/product/xaga/*-FASTBOOT.zip"
+echo "  out/target/product/xaga/<timestamp>.zip"
 echo ""
-print_warn "Note: You must run 'm pixelos' first to generate the"
-print_warn "target-files package that fb_package depends on."
+print_warn "Note: 'm pixelos_fb' builds ONLY fastboot ROM (no recovery ROM)."
+print_warn "      'm pixelos fb_package' will build recovery ROM first, then fastboot."
 echo ""

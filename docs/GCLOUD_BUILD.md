@@ -124,12 +124,20 @@ The fastboot package is a self-contained ZIP with firmware, AOSP images, tools, 
 ### Building
 
 ```bash
-# After a successful m pixelos build:
+# Build fastboot ROM only (NO recovery ROM):
 cd ~/pixelos
+source build/envsetup.sh
+breakfast xaga
 bash ~/Pixelos/scripts/apply_fb_package_patch.sh   # generates fb_package.mk
-rm -f out/target/product/xaga/super.img             # force full super.img rebuild
-m fb_package
+m pixelos_fb                                        # builds target-files-package + fb_package only
 ```
+
+**Alternative:** If you want to build recovery ROM first, then fastboot package:
+```bash
+m pixelos fb_package  # This WILL build recovery ROM first
+```
+
+**Note:** `m pixelos_fb` builds ONLY fastboot ROM (no recovery ROM). Use this if you only need fastboot package.
 
 The output ZIP will be at `out/target/product/xaga/<date>-<time>.zip`.
 

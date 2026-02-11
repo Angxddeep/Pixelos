@@ -591,4 +591,35 @@ The script:
 - `scripts/apply_fb_package_patch.sh` is no longer strictly required for automated builds (though still useful for manual `m fb_package` support).
 - Fastboot package generation is now more robust and easier to debug.
 
+---
+
+### 27. ✅ Added `pixelos_fb` Target to Skip Recovery ROM Build
+
+**Locations**:
+- Modified: `scripts/apply_fb_package_patch.sh` (the generated `fb_package.mk`)
+- Modified: `docs/GCLOUD_BUILD.md`
+
+**Reason**:
+When running `m pixelos fb_package`, the build system builds `pixelos` first (which includes recovery ROM), then `fb_package`. The user requested a way to build only fastboot ROM without building recovery ROM.
+
+**What was changed**:
+- Added a new `pixelos_fb` target in `fb_package.mk` that builds `target-files-package` and `fb_package` without building `otapackage` (recovery ROM).
+- Updated documentation to recommend using `m pixelos_fb` instead of `m pixelos fb_package` when only fastboot ROM is needed.
+
+**Usage**:
+```bash
+# Build fastboot ROM only (NO recovery ROM):
+cd ~/pixelos
+source build/envsetup.sh
+breakfast xaga
+m pixelos_fb
+
+# Alternative (builds recovery ROM first, then fastboot):
+m pixelos fb_package
+```
+
+**Impact**:
+- Users can now build fastboot ROM without building recovery ROM by using `m pixelos_fb`.
+- Saves build time and disk space when only fastboot package is needed.
+
 
