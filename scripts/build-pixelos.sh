@@ -21,6 +21,14 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 print_step() { echo -e "${CYAN}[STEP]${NC} $1"; }
 
 # =============================================================================
+# 0. Global Setup
+# =============================================================================
+
+# Capture the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+print_info "Script directory: $SCRIPT_DIR"
+
+# =============================================================================
 # Configuration
 # =============================================================================
 
@@ -721,8 +729,8 @@ if make target-files-package -j"$JOBS" 2>&1 | tee build.log; then
     
     # Automatically build fastboot package
     # Automatically build fastboot package
-    print_info "Generating Fastboot Package (scripts/package_fastboot.sh)..."
-    if bash scripts/package_fastboot.sh; then
+    print_info "Generating Fastboot Package ($SCRIPT_DIR/package_fastboot.sh)..."
+    if bash "$SCRIPT_DIR/package_fastboot.sh"; then
         print_success "Fastboot Package Generated Successfully!"
     else
         print_error "Fastboot Package Generation Failed!"
