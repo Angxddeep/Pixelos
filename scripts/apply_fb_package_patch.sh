@@ -95,43 +95,33 @@ FB_GEN_DIR := $(PRODUCT_OUT)/fastboot_gen
 # Path to fastboot tools (injected by apply_fb_package_patch.sh)
 PIXELOS_FASTBOOT_DIR := __FASTBOOT_DIR__
 
-# Firmware partition images to pull from build output
-FIRMWARE_IMAGES := \
+# All images to include in the package (matches AresOS reference layout)
+FB_PACKAGE_IMAGES := \
     apusys.img audio_dsp.img boot.img ccu.img dpm.img dtbo.img \
     gpueb.img gz.img lk.img mcf_ota.img mcupm.img md1img.img \
     mvpu_algo.img pi_img.img scp.img spmfw.img sspm.img tee.img \
     vcp.img vbmeta.img vbmeta_system.img vbmeta_vendor.img \
-    vendor_boot.img super.img
+    vendor_boot.img super.img unsparse_super_empty.img
 
 .PHONY: fb_package
-fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
+fb_package: $(BUILT_TARGET_FILES_PACKAGE) superimage
 	$(call pretty,"Package fastboot: $(PIXELOS_FB_PACKAGE)")
 	$(hide) rm -rf $(FB_GEN_DIR)
 	$(hide) mkdir -p $(FB_GEN_DIR)/images
 	@echo "=== Collecting images from build output ==="
-	$(hide) for img in $(FIRMWARE_IMAGES); do \
+	$(hide) for img in $(FB_PACKAGE_IMAGES); do \
 		if [ -f "$(PRODUCT_OUT)/$$img" ]; then \
-			echo "  Copying $$img"; \
+			echo "  ✓ $$img"; \
 			cp $(PRODUCT_OUT)/$$img $(FB_GEN_DIR)/images/$$img; \
+		else \
+			echo "  ✗ $$img (not found, skipping)"; \
 		fi; \
 	done
 	$(hide) if [ -f "$(PRODUCT_OUT)/preloader_xaga.bin" ]; then \
-		echo "  Copying preloader_xaga.bin"; \
+		echo "  ✓ preloader_xaga.bin"; \
 		cp $(PRODUCT_OUT)/preloader_xaga.bin $(FB_GEN_DIR)/images/preloader_xaga.bin; \
-	fi
-	@echo "=== Extracting additional images from target-files ==="
-	$(hide) $(IMG_FROM_TARGET_FILES_EXTENDED) --images_path _tf_images $(BUILT_TARGET_FILES_PACKAGE) $(FB_GEN_DIR)/tf_images.zip
-	$(hide) unzip -qo $(FB_GEN_DIR)/tf_images.zip -d $(FB_GEN_DIR)
-	$(hide) for img in $(FB_GEN_DIR)/_tf_images/*.img; do \
-		base=$$(basename $$img); \
-		if [ ! -f "$(FB_GEN_DIR)/images/$$base" ]; then \
-			echo "  Adding $$base from target-files"; \
-			cp $$img $(FB_GEN_DIR)/images/$$base; \
-		fi; \
-	done
-	$(hide) rm -rf $(FB_GEN_DIR)/tf_images.zip $(FB_GEN_DIR)/_tf_images
-	$(hide) if [ -f "$(FB_GEN_DIR)/android-info.txt" ]; then \
-		mv $(FB_GEN_DIR)/android-info.txt $(FB_GEN_DIR)/images/android-info.txt 2>/dev/null || true; \
+	else \
+		echo "  ✗ preloader_xaga.bin (not found, skipping)"; \
 	fi
 	@echo "=== Copying fastboot tools ==="
 	$(hide) if [ -d "$(PIXELOS_FASTBOOT_DIR)" ]; then \
