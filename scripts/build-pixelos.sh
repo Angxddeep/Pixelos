@@ -719,6 +719,12 @@ else
     exit 1
 fi
 
+# Export build variables for subshells (like package_fastboot.sh)
+export PRODUCT_OUT
+export HOST_OUT_EXECUTABLES
+export TARGET_PRODUCT
+export DEVICE_CODENAME
+
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
 
