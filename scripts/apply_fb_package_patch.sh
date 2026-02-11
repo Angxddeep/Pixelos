@@ -82,6 +82,7 @@ fb_package: $(BUILT_TARGET_FILES_PACKAGE) $(IMG_FROM_TARGET_FILES_EXTENDED)
 	$(hide) chmod +x $(FB_GEN_DIR)/linux_installation.sh
 	$(hide) echo "Zipping package..."
 	$(hide) cd $(FB_GEN_DIR) && zip -r $(PIXELOS_FB_PACKAGE) .
+	$(hide) ln -sf $(notdir $(PIXELOS_FB_PACKAGE)) $(PRODUCT_OUT)/latest-fastboot.zip
 	$(hide) rm -rf $(FB_GEN_DIR)
 	@echo "Package Complete: $(PIXELOS_FB_PACKAGE)" >&2
 EOFMK
