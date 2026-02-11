@@ -565,4 +565,30 @@ When fixing a build error, add an entry with:
 | `libmialgoengine.so` not found | Missing camera vendor blobs | Verify `vendor/xiaomi/miuicamera-xaga/` exists |
 | Camera HAL errors | SEPolicy or HAL compatibility | Check `logcat -s audit:*` and `dumpsys media.camera` |
 
+---
+
+### 26. ✅ Replaced `m fb_package` with Script-Based Packaging
+
+**Locations**:
+- Created: `scripts/package_fastboot.sh`
+- Modified: `scripts/build-pixelos.sh`
+
+**Reason**:
+Building the fastboot package via `m fb_package` required patching the build system makefiles (`fb_package.mk`). The user requested a direct script execution approach to avoid reliance on makefile patches and ensure consistency.
+
+**What was changed**:
+- Created `scripts/package_fastboot.sh` which replicates the logic of `fb_package.mk` in pure Bash.
+- Updated `scripts/build-pixelos.sh` to call `scripts/package_fastboot.sh` instead of `m fb_package`.
+
+**How it works**:
+The script:
+1. Checks for `super.img` in `PRODUCT_OUT`, builds it if missing using `build_super_image`.
+2. Copies images from `PRODUCT_OUT`, falling back to `target-files/IMAGES` or `target-files/RADIO`.
+3. Copies fastboot tools and installation scripts.
+4. Zips everything into `PixelOS_xaga_Fastboot_YYYYMMDD-HHMM.zip`.
+
+**Impact**:
+- `scripts/apply_fb_package_patch.sh` is no longer strictly required for automated builds (though still useful for manual `m fb_package` support).
+- Fastboot package generation is now more robust and easier to debug.
+
 

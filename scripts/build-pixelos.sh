@@ -720,8 +720,9 @@ if make target-files-package -j"$JOBS" 2>&1 | tee build.log; then
     print_success "Target Files Build Successful!"
     
     # Automatically build fastboot package
-    print_info "Generating Fastboot Package (m fb_package)..."
-    if m fb_package; then
+    # Automatically build fastboot package
+    print_info "Generating Fastboot Package (scripts/package_fastboot.sh)..."
+    if bash scripts/package_fastboot.sh; then
         print_success "Fastboot Package Generated Successfully!"
     else
         print_error "Fastboot Package Generation Failed!"
