@@ -124,8 +124,11 @@ The fastboot package is a self-contained ZIP with firmware, AOSP images, tools, 
 ### Building
 
 ```bash
-# Build fastboot ROM only (NO recovery ROM):
+# First-time setup: Create custom_xaga.mk (required for breakfast xaga)
 cd ~/pixelos
+bash ~/Pixelos/scripts/setup_custom_xaga.sh
+
+# Build fastboot ROM only (NO recovery ROM):
 source build/envsetup.sh
 breakfast xaga
 bash ~/Pixelos/scripts/apply_fb_package_patch.sh   # generates fb_package.mk
@@ -137,7 +140,9 @@ m pixelos_fb                                        # builds target-files-packag
 m pixelos fb_package  # This WILL build recovery ROM first
 ```
 
-**Note:** `m pixelos_fb` builds ONLY fastboot ROM (no recovery ROM). Use this if you only need fastboot package.
+**Note:** 
+- `m pixelos_fb` builds ONLY fastboot ROM (no recovery ROM). Use this if you only need fastboot package.
+- If `breakfast xaga` fails with "Cannot locate config makefile for product custom_xaga", run `bash ~/Pixelos/scripts/setup_custom_xaga.sh` first.
 
 The output ZIP will be at `out/target/product/xaga/<date>-<time>.zip`.
 
