@@ -348,46 +348,8 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
 
     cd "$BUILD_DIR"
 
-    # =============================================================================
-    # Step 5: Create PixelOS Product Makefile
-    # =============================================================================
-
-    print_step "5.5/7 - Creating PixelOS product makefile..."
-
-    # The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
-    # We need to create an aosp_xaga.mk for PixelOS
-    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk << 'EOFMK'
-#
-# Copyright (C) 2023 The LineageOS Project
-# Copyright (C) 2024-2026 PixelOS
-#
-# SPDX-License-Identifier: Apache-2.0
-#
-
-# Inherit from those products. Most specific first.
-$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-
-# Inherit from xaga device
-$(call inherit-product, device/xiaomi/xaga/device.mk)
-
-# Inherit some common PixelOS stuff.
-$(call inherit-product, vendor/custom/config/common_full_phone.mk)
-
-PRODUCT_BRAND := POCO
-PRODUCT_DEVICE := xaga
-PRODUCT_MANUFACTURER := Xiaomi
-PRODUCT_MODEL := 22041216G
-PRODUCT_NAME := custom_xaga
-PRODUCT_SYSTEM_NAME := xaga_global
-
-PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
-
-PRODUCT_BUILD_PROP_OVERRIDES += \
-    BuildDesc="xaga_global-user 14 UP1A.231005.007 OS2.0.3.0.ULOMIXM release-keys" \
-    BuildFingerprint=POCO/xaga_global/xaga:14/UP1A.231005.007/OS2.0.3.0.ULOMIXM:user/release-keys \
-    DeviceProduct=$(PRODUCT_SYSTEM_NAME)
-EOFMK
+    # Step 5.5 removed - relying on standard device tree configuration
+    # (User confirmed manual breakfast flow works)
 
     # AndroidProducts.mk will be created/updated in the build section (after patches)
     # to ensure consistency
@@ -624,70 +586,10 @@ if [[ "$CLEAN_BUILD" == "true" ]]; then
 fi
 
 # =============================================================================
-# Create PixelOS Product Makefile (always runs, even with --build-only)
+# Step 5: Build ROM
 # =============================================================================
 
-print_info "Ensuring PixelOS product makefile exists..."
-
-# The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
-# We need to create an aosp_xaga.mk for PixelOS
-if [[ ! -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk" ]]; then
-    print_info "Creating custom_xaga.mk..."
-    cat > device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk << 'EOFMK'
-#
-# Copyright (C) 2023 The LineageOS Project
-# Copyright (C) 2024-2026 PixelOS
-#
-# SPDX-License-Identifier: Apache-2.0
-#
-
-# Inherit from those products. Most specific first.
-$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-
-# Inherit from xaga device
-$(call inherit-product, device/xiaomi/xaga/device.mk)
-
-# Inherit some common PixelOS stuff.
-$(call inherit-product, vendor/custom/config/common_full_phone.mk)
-
-PRODUCT_BRAND := POCO
-PRODUCT_DEVICE := xaga
-PRODUCT_MANUFACTURER := Xiaomi
-PRODUCT_MODEL := 22041216G
-PRODUCT_NAME := custom_xaga
-PRODUCT_SYSTEM_NAME := xaga_global
-
-PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
-
-PRODUCT_BUILD_PROP_OVERRIDES += \
-    BuildDesc="xaga_global-user 14 UP1A.231005.007 OS2.0.3.0.ULOMIXM release-keys" \
-    BuildFingerprint=POCO/xaga_global/xaga:14/UP1A.231005.007/OS2.0.3.0.ULOMIXM:user/release-keys \
-    DeviceProduct=$(PRODUCT_SYSTEM_NAME)
-EOFMK
-fi
-
-# Update AndroidProducts.mk to include custom_xaga
-ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-print_info "Setting up AndroidProducts.mk..."
-
-# Always recreate AndroidProducts.mk to ensure consistency
-cat > "$ANDROID_PRODUCTS" << 'EOFAP'
-PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/custom_xaga.mk \
-    $(LOCAL_DIR)/lineage_xaga.mk
-
-COMMON_LUNCH_CHOICES := \
-    custom_xaga-userdebug \
-    custom_xaga-user \
-    custom_xaga-eng \
-    lineage_xaga-userdebug \
-    lineage_xaga-user \
-    lineage_xaga-eng
-EOFAP
-print_success "AndroidProducts.mk updated"
-
-print_success "Product makefile ready!"
+print_step "6/7 - Building PixelOS..."
 
 # Setup ccache
 export USE_CCACHE=1
@@ -696,10 +598,12 @@ export CCACHE_EXEC=$(which ccache)
 # Source build environment
 source build/envsetup.sh
 
-# Setup device with lunch (explicit product selection)
-# Using custom_xaga product we created
-print_info "Setting up device with lunch..."
-lunch custom_xaga-${BUILD_TYPE}
+# Export TARGET_RELEASE for Android 14/15+ builds (just in case)
+export TARGET_RELEASE=trunk_staging
+
+# Setup device with breakfast (matches user manual flow)
+print_info "Setting up device with breakfast..."
+breakfast "$DEVICE_CODENAME"
 
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
