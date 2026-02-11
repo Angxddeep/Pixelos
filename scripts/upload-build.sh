@@ -34,15 +34,20 @@ if ! command -v m &> /dev/null; then
 fi
 
 # =============================================================================
-# Generate fastboot package
+# Generate fastboot package (if needed)
 # =============================================================================
 
-print_info "Generating fastboot package..."
-m fb_package 2>&1 | tail -5
-
-# Find the output files
-ROM_ZIP=$(ls -t $PRODUCT_OUT/PixelOS_*.zip 2>/dev/null | head -1)
+# Check if fastboot package already exists for this build
 FB_ZIP=$(ls -t $PRODUCT_OUT/*-FASTBOOT.zip 2>/dev/null | head -1)
+
+if [[ -f "$FB_ZIP" ]]; then
+    print_info "Fastboot package found: $(basename $FB_ZIP)"
+    print_info "Skipping generation..."
+else
+    print_info "Generating fastboot package..."
+    m fb_package 2>&1 | tail -5
+    FB_ZIP=$(ls -t $PRODUCT_OUT/*-FASTBOOT.zip 2>/dev/null | head -1)
+fi
 BOOT_IMG="$PRODUCT_OUT/boot.img"
 VENDOR_BOOT_IMG="$PRODUCT_OUT/vendor_boot.img"
 
