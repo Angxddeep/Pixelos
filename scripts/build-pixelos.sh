@@ -182,7 +182,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         cd "$BUILD_DIR"
     else
         git clone --depth=1 -b "$DEVICE_TREE_BRANCH" \
-            https://gitlab.com/ItsVixano-dev/Android/xiaomi-mt6895-devs/proprietary_vendor_xiaomi_xaga.git \
+            https://gitlab.com/itsvixano-dev/android/xiaomi-mt6895-devs/proprietary_vendor_xiaomi_xaga.git \
             vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME
     fi
 
@@ -235,7 +235,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     # MIUI Camera (16.1 branch for sixteen-qpr1)
     rm -rf vendor/$DEVICE_MANUFACTURER/miuicamera-xaga 2>/dev/null || true
     git clone --depth=1 -b 16.1 \
-        https://gitlab.com/priiii1808/proprietary_vendor_xiaomi_miuicamera-xaga.git \
+        https://gitlab.com/priiii08918/proprietary_vendor_xiaomi_miuicamera-xaga.git \
         vendor/$DEVICE_MANUFACTURER/miuicamera-xaga
 
     # Add MIUI Camera to device makefiles if not present
@@ -259,10 +259,46 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     fi
 
     # =============================================================================
+    # Step 3.5: Download Preloader (only missing piece from xiaomi-mt6895-devs)
+    # =============================================================================
+
+    print_step "4.5/6 - Downloading preloader..."
+
+    # The xiaomi-mt6895-devs vendor has all firmware EXCEPT preloader
+    # Download just the preloader from XagaForge (single file, faster than git clone)
+    DEVICE_RADIO_DIR="vendor/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/radio"
+    mkdir -p "$DEVICE_RADIO_DIR"
+    
+    PRELOADER_URL="https://raw.githubusercontent.com/XagaForge/android_vendor_firmware/16/xaga/radio/preloader_raw.img"
+    PRELOADER_PATH="$DEVICE_RADIO_DIR/preloader_xaga.bin"
+    
+    if [[ ! -f "$PRELOADER_PATH" ]]; then
+        print_info "Downloading preloader_xaga.bin from XagaForge..."
+        if curl -fsSL "$PRELOADER_URL" -o "$PRELOADER_PATH"; then
+            print_success "Downloaded preloader_xaga.bin"
+        else
+            print_warn "Failed to download preloader, fastboot package will be incomplete"
+        fi
+    else
+        print_info "Preloader already exists, skipping download"
+    fi
+    
+    # Add PRODUCT_COPY_FILES for preloader to custom_xaga.mk
+    if [[ -f "device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk" ]]; then
+        if ! grep -q "preloader_xaga.bin" device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk; then
+            echo "" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            echo "# Preloader for fastboot package" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            echo "PRODUCT_COPY_FILES += \\" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            echo "    $PRELOADER_PATH:\$(PRODUCT_OUT)/preloader_xaga.bin" >> device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/custom_xaga.mk
+            print_success "Added preloader to custom_xaga.mk"
+        fi
+    fi
+
+    # =============================================================================
     # Step 4: Apply Required Patches
     # =============================================================================
 
-    print_step "5/6 - Applying wpa_supplicant_8 patches..."
+    print_step "5/7 - Applying wpa_supplicant_8 patches..."
 
     cd external/wpa_supplicant_8
 
@@ -306,7 +342,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     # Step 5: Create PixelOS Product Makefile
     # =============================================================================
 
-    print_step "5.5/6 - Creating PixelOS product makefile..."
+    print_step "5.5/7 - Creating PixelOS product makefile..."
 
     # The xiaomi-mt6895-devs device tree is for LineageOS (lineage_xaga.mk)
     # We need to create an aosp_xaga.mk for PixelOS
@@ -343,28 +379,8 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
     DeviceProduct=$(PRODUCT_SYSTEM_NAME)
 EOFMK
 
-    # Also need to add custom_xaga to AndroidProducts.mk if not present
-    ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-    if ! grep -q "custom_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
-        print_info "Adding custom_xaga to AndroidProducts.mk..."
-        # Check if file exists and what format it uses
-        if [[ -f "$ANDROID_PRODUCTS" ]]; then
-            # Append custom_xaga.mk to PRODUCT_MAKEFILES
-            sed -i '/PRODUCT_MAKEFILES/a\    $(LOCAL_DIR)/custom_xaga.mk \\' "$ANDROID_PRODUCTS"
-        else
-            # Create new AndroidProducts.mk
-            cat > "$ANDROID_PRODUCTS" << 'EOFAP'
-PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/custom_xaga.mk \
-    $(LOCAL_DIR)/lineage_xaga.mk
-
-COMMON_LUNCH_CHOICES := \
-    custom_xaga-userdebug \
-    custom_xaga-user \
-    lineage_xaga-userdebug
-EOFAP
-        fi
-    fi
+    # AndroidProducts.mk will be created/updated in the build section (after patches)
+    # to ensure consistency
 
     # =============================================================================
     # Step 6: Clean up broken symlinks (Qualcomm repos not needed for MediaTek)
@@ -412,7 +428,7 @@ fi
 # Step 5: Build ROM
 # =============================================================================
 
-print_step "6/6 - Building PixelOS..."
+print_step "6/7 - Building PixelOS..."
 
 # =============================================================================
 # Fix livedisplay module dependencies (always runs, even with --build-only)
@@ -643,12 +659,10 @@ fi
 
 # Update AndroidProducts.mk to include custom_xaga
 ANDROID_PRODUCTS="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-if ! grep -q "custom_xaga" "$ANDROID_PRODUCTS" 2>/dev/null; then
-    print_info "Updating AndroidProducts.mk..."
-    if [[ -f "$ANDROID_PRODUCTS" ]]; then
-        # Add custom_xaga.mk to PRODUCT_MAKEFILES and COMMON_LUNCH_CHOICES
-        cp "$ANDROID_PRODUCTS" "${ANDROID_PRODUCTS}.bak"
-        cat > "$ANDROID_PRODUCTS" << 'EOFAP'
+print_info "Setting up AndroidProducts.mk..."
+
+# Always recreate AndroidProducts.mk to ensure consistency
+cat > "$ANDROID_PRODUCTS" << 'EOFAP'
 PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/custom_xaga.mk \
     $(LOCAL_DIR)/lineage_xaga.mk
@@ -661,8 +675,7 @@ COMMON_LUNCH_CHOICES := \
     lineage_xaga-user \
     lineage_xaga-eng
 EOFAP
-    fi
-fi
+print_success "AndroidProducts.mk updated"
 
 print_success "Product makefile ready!"
 
@@ -673,17 +686,18 @@ export CCACHE_EXEC=$(which ccache)
 # Source build environment
 source build/envsetup.sh
 
-# Setup device with breakfast (new PixelOS sixteen-qpr1 method)
-# This replaces the old lunch command
-print_info "Setting up device with breakfast..."
-breakfast ${DEVICE_CODENAME}
+# Setup device with lunch (explicit product selection)
+# Using custom_xaga product we created
+print_info "Setting up device with lunch..."
+lunch custom_xaga-${BUILD_TYPE}
 
 print_info "Starting compilation with $JOBS jobs..."
 START_TIME=$(date +%s)
 
-# Build using new PixelOS command (replaces mka bacon)
-if m pixelos -j"$JOBS" 2>&1 | tee build.log; then
-    print_success "ROM Build Successful!"
+# Build target-files-package only (skip recovery ROM, build fastboot images only)
+# This builds partition images without creating the recovery-flashable OTA ZIP
+if make target-files-package -j"$JOBS" 2>&1 | tee build.log; then
+    print_success "Target Files Build Successful!"
     
     # Automatically build fastboot package
     print_info "Generating Fastboot Package (m fb_package)..."
@@ -693,7 +707,7 @@ if m pixelos -j"$JOBS" 2>&1 | tee build.log; then
         print_error "Fastboot Package Generation Failed!"
     fi
 else
-    print_error "ROM Build Failed!"
+    print_error "Build Failed!"
     exit 1
 fi
 
