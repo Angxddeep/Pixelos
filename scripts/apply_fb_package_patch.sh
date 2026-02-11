@@ -31,6 +31,30 @@ if [[ ! -d "vendor/custom" ]]; then
 fi
 
 # =============================================================================
+# 0. Copy fastboot tools to build root
+# =============================================================================
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+FASTBOOT_SRC="$REPO_ROOT/fastboot"
+FASTBOOT_DEST="./fastboot"
+
+print_info "Checking for fastboot tools..."
+
+if [ -d "$FASTBOOT_SRC" ]; then
+    if [ ! -d "$FASTBOOT_DEST" ]; then
+        print_info "Copying fastboot tools from $FASTBOOT_SRC to $FASTBOOT_DEST..."
+        cp -r "$FASTBOOT_SRC" "$FASTBOOT_DEST"
+        print_success "Copied fastboot tools."
+    else
+        print_info "Fastboot tools already exist at $FASTBOOT_DEST. Syncing..."
+        cp -r "$FASTBOOT_SRC/"* "$FASTBOOT_DEST/"
+        print_success "Synced fastboot tools."
+    fi
+else
+    print_warn "Could not find fastboot tools at $FASTBOOT_SRC"
+fi
+
+# =============================================================================
 # 1. Discover PixelOS version variables
 # =============================================================================
 
