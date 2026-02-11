@@ -126,13 +126,22 @@ The fastboot package is a self-contained ZIP with firmware, AOSP images, tools, 
 ```bash
 # First-time setup: Create custom_xaga.mk (required for breakfast xaga)
 cd ~/pixelos
+
+# 1. Make sure device tree is synced
+repo sync device/xiaomi/xaga device/xiaomi/mt6895-common
+
+# 2. Run setup script to create custom_xaga.mk
 bash ~/Pixelos/scripts/setup_custom_xaga.sh
 
-# Build fastboot ROM only (NO recovery ROM):
+# 3. Apply fastboot package patch (creates fb_package.mk with pixelos_fb target)
+bash ~/Pixelos/scripts/apply_fb_package_patch.sh
+
+# 4. Source build environment and lunch
 source build/envsetup.sh
-breakfast xaga
-bash ~/Pixelos/scripts/apply_fb_package_patch.sh   # generates fb_package.mk
-m pixelos_fb                                        # builds target-files-package + fb_package only
+lunch custom_xaga-userdebug
+
+# 5. Build fastboot ROM only (NO recovery ROM)
+m pixelos_fb
 ```
 
 **Alternative:** If you want to build recovery ROM first, then fastboot package:
