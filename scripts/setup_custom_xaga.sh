@@ -34,6 +34,14 @@ if [[ ! -d "$DEVICE_DIR" ]]; then
     exit 1
 fi
 
+# Check if BoardConfig exists
+BOARDCONFIG_MK="$DEVICE_DIR/BoardConfig.mk"
+BOARDCONFIG_XAGA_MK="$DEVICE_DIR/BoardConfigXaga.mk"
+if [[ ! -f "$BOARDCONFIG_MK" ]] && [[ ! -f "$BOARDCONFIG_XAGA_MK" ]]; then
+    print_warn "BoardConfig.mk or BoardConfigXaga.mk not found in $DEVICE_DIR"
+    print_warn "The device tree might not be synced properly"
+fi
+
 print_info "Setting up custom_xaga.mk for PixelOS..."
 
 # Create custom_xaga.mk
@@ -50,12 +58,12 @@ cat > "$CUSTOM_MK" << 'EOFMK'
 # PixelOS product configuration for xaga
 # Inherits from PixelOS common configuration
 
+# Inherit device configuration first (sets up architecture, etc.)
+$(call inherit-product, device/xiaomi/mt6895-common/mt6895.mk)
+$(call inherit-product, device/xiaomi/xaga/device.mk)
+
 # Inherit PixelOS common full phone configuration
 $(call inherit-product, vendor/custom/config/common_full_phone.mk)
-
-# Inherit device configuration
-$(call inherit-product, device/xiaomi/xaga/device.mk)
-$(call inherit-product, device/xiaomi/mt6895-common/mt6895.mk)
 
 # Product name
 PRODUCT_NAME := custom_xaga
@@ -156,6 +164,25 @@ if [[ -f "$PRELOADER_PATH" ]]; then
     fi
 fi
 
+# Verify BoardConfig exists
+if [[ -f "$BOARDCONFIG_XAGA_MK" ]]; then
+    print_info "Found BoardConfigXaga.mk"
+    if ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_XAGA_MK"; then
+        print_warn "BoardConfigXaga.mk doesn't have TARGET_SUPPORTS_64_BIT_APPS set"
+        print_warn "This may cause '32-bit-app-only product on 64-bit device' errors"
+    fi
+elif [[ -f "$BOARDCONFIG_MK" ]]; then
+    print_info "Found BoardConfig.mk"
+    if ! grep -q "TARGET_SUPPORTS_64_BIT_APPS" "$BOARDCONFIG_MK"; then
+        print_warn "BoardConfig.mk doesn't have TARGET_SUPPORTS_64_BIT_APPS set"
+        print_warn "This may cause '32-bit-app-only product on 64-bit device' errors"
+    fi
+else
+    print_error "No BoardConfig found! The device tree may not be synced properly."
+    print_error "Run: repo sync"
+    exit 1
+fi
+
 print_success "=========================================="
 print_success "Setup complete!"
 print_success "=========================================="
@@ -163,5 +190,8 @@ echo ""
 print_info "You can now run:"
 echo "  source build/envsetup.sh"
 echo "  breakfast xaga"
+echo ""
+print_warn "If you get '32-bit-app-only product' error, try:"
+echo "  lunch custom_xaga-userdebug"
 echo "  m pixelos_fb"
 echo ""
