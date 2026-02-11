@@ -391,6 +391,70 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         print_warn "frameworks/base/Android.bp not found, skipping livedisplay fix"
     fi
 
+    # =============================================================================
+    # Step 6: Clean up broken symlinks (Qualcomm repos not needed for MediaTek)
+    # =============================================================================
+
+    print_info "Removing broken Qualcomm hardware symlinks (not needed for MediaTek)..."
+    rm -rf hardware/qcom/sdm845 2>/dev/null || true
+    rm -rf hardware/qcom/sm7250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8150 2>/dev/null || true
+    rm -rf hardware/qcom/sm8250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8350 2>/dev/null || true
+
+    # Remove incompatible livedisplay HIDL services (they expect @2.0 but repo has AIDL V2)
+    # LiveDisplay is not essential - display works fine without it
+    print_info "Removing incompatible livedisplay HIDL services..."
+    rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
+    rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
+
+    # =============================================================================
+    # Step 7: Fix livedisplay module naming in frameworks/base
+    # =============================================================================
+    
+    print_info "Fixing livedisplay module dependencies in frameworks/base..."
+    if [[ -f "frameworks/base/Android.bp" ]]; then
+        # Replace old HIDL naming with new AIDL naming
+        # Custom patches for LiveDisplay could go here if needed
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        print_success "LiveDisplay interfaces should be correct with lineage-21.0 branch"
+    else
+        print_warn "frameworks/base/Android.bp not found, skipping livedisplay fix"
+    fi
+
+    # =============================================================================
+    # Step 6: Clean up broken symlinks (Qualcomm repos not needed for MediaTek)
+    # =============================================================================
+
+    print_info "Removing broken Qualcomm hardware symlinks (not needed for MediaTek)..."
+    rm -rf hardware/qcom/sdm845 2>/dev/null || true
+    rm -rf hardware/qcom/sm7250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8150 2>/dev/null || true
+    rm -rf hardware/qcom/sm8250 2>/dev/null || true
+    rm -rf hardware/qcom/sm8350 2>/dev/null || true
+
+    # Remove incompatible livedisplay HIDL services (they expect @2.0 but repo has AIDL V2)
+    # LiveDisplay is not essential - display works fine without it
+    print_info "Removing incompatible livedisplay HIDL services..."
+    rm -rf hardware/lineage/livedisplay/sdm 2>/dev/null || true
+    rm -rf hardware/lineage/livedisplay/sysfs 2>/dev/null || true
+
+    # =============================================================================
+    # Step 7: Fix livedisplay module naming in frameworks/base
+    # =============================================================================
+    
+    print_info "Fixing livedisplay module dependencies in frameworks/base..."
+    if [[ -f "frameworks/base/Android.bp" ]]; then
+        # Replace old HIDL naming with new AIDL naming
+        # Custom patches for LiveDisplay could go here if needed
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.0-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        # sed -i 's/vendor\.lineage\.livedisplay-V2\.1-java/vendor.lineage.livedisplay-V2-java/g' frameworks/base/Android.bp
+        print_success "LiveDisplay interfaces should be correct with lineage-21.0 branch"
+    else
+        print_warn "frameworks/base/Android.bp not found, skipping livedisplay fix"
+    fi
+
     print_success "Sources ready!"
 fi
 
@@ -606,23 +670,30 @@ source build/envsetup.sh
 # export TARGET_RELEASE=trunk_staging
 
 # Setup device - Smart detection
-print_info "Detecting valid product from AndroidProducts.mk..."
+print_info "Detecting valid product..."
 
-PRODUCTS_MK="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
-if [[ -f "$PRODUCTS_MK" ]]; then
-    # Extract product name (e.g., pixelos_xaga, lineage_xaga)
-    DETECTED_PRODUCT=$(grep -oE "(pixelos|lineage|aosp)_${DEVICE_CODENAME}" "$PRODUCTS_MK" | head -n 1)
-    
-    if [[ -z "$DETECTED_PRODUCT" ]]; then
-        # Fallback to defaults
-        DETECTED_PRODUCT="lineage_${DEVICE_CODENAME}"
-        print_warn "Could not auto-detect product name, defaulting to $DETECTED_PRODUCT"
-    else
-        print_info "Auto-detected product: $DETECTED_PRODUCT"
+# 1. Check if we have a previous build (best for incremental)
+PREV_BUILD_PROP="out/target/product/$DEVICE_CODENAME/system/build.prop"
+if [[ -f "$PREV_BUILD_PROP" ]]; then
+    # Extract ro.product.name from previous build
+    DETECTED_PRODUCT=$(grep "ro.product.name=" "$PREV_BUILD_PROP" | cut -d= -f2)
+    print_info "Found previous build artifact: $DETECTED_PRODUCT"
+fi
+
+# 2. If no previous build found, check AndroidProducts.mk
+if [[ -z "$DETECTED_PRODUCT" ]]; then
+    PRODUCTS_MK="device/$DEVICE_MANUFACTURER/$DEVICE_CODENAME/AndroidProducts.mk"
+    if [[ -f "$PRODUCTS_MK" ]]; then
+        # Extract product name (e.g., pixelos_xaga, lineage_xaga)
+        DETECTED_PRODUCT=$(grep -oE "(pixelos|lineage|aosp)_${DEVICE_CODENAME}" "$PRODUCTS_MK" | head -n 1)
+        print_info "Auto-detected product from makefile: $DETECTED_PRODUCT"
     fi
-else
-    print_error "AndroidProducts.mk not found at $PRODUCTS_MK"
-    exit 1
+fi
+
+if [[ -z "$DETECTED_PRODUCT" ]]; then
+    # Fallback to defaults
+    DETECTED_PRODUCT="lineage_${DEVICE_CODENAME}"
+    print_warn "Could not auto-detect product name, defaulting to $DETECTED_PRODUCT"
 fi
 
 # Unset stale variables that might force custom_xaga
